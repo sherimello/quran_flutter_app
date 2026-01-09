@@ -35,10 +35,18 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.6.0
-#  audioplayers: ^6.5.1
-  google_fonts: ^7.0.0
+  google_fonts: ^6.1.0
   shimmer: ^3.0.0
-  audioplayers: ^6.5.1
+  audioplayers: ^5.2.1
+  
+  # New Dependencies
+  supabase_flutter: ^2.3.1
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  path_provider: ^2.1.1
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+  dio: ^5.4.0
 
 dev_dependencies:
   flutter_test:
@@ -78,6 +86,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
+  fonts:
+    - family: qalammajeed3
+      fonts:
+        - asset: assets/fonts/qalammajeed3.ttf
   # fonts:
   #   - family: Schyler
   #     fonts:
