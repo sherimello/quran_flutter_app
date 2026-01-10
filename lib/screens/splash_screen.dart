@@ -24,41 +24,29 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAndLoadData() async {
     final dbService = DatabaseService();
-    final dataService = DataService();
+    final prefs = await SharedPreferences.getInstance();
+
+    const int currentDataVersion = 2; // Incremented to trigger refresh
+    int savedVersion = prefs.getInt('quran_data_version') ?? 1;
+
     bool isPopulated = await dbService.isDatabasePopulated();
 
-    if (isPopulated) {
-      // Check if translation repair is needed
-      final prefs = await SharedPreferences.getInstance();
-      bool isFixed = prefs.getBool('pickthall_translation_fixed') ?? false;
-
-      if (!isFixed) {
-        setState(() {
-          _status = 'Updating translations...';
-        });
-
-        try {
-          await dataService.repairTranslations((progress) {
-            if (mounted) {
-              setState(() {
-                _progress = progress;
-              });
-            }
-          });
-          await prefs.setBool('pickthall_translation_fixed', true);
-        } catch (e) {
-          // If repair fails, we can still proceed to home, but maybe show an error later
-          debugPrint('Translation repair failed: $e');
-        }
-      }
-
+    if (isPopulated && savedVersion >= currentDataVersion) {
       if (mounted) {
         _navigateToHome();
       }
     } else {
-      setState(() {
-        _status = 'Downloading Quran Data...';
-      });
+      // Need to download or update
+      if (isPopulated && savedVersion < currentDataVersion) {
+        setState(() {
+          _status = 'Updating to new data source...';
+        });
+        await dbService.clearQuranData();
+      } else {
+        setState(() {
+          _status = 'Downloading Quran Data...';
+        });
+      }
 
       try {
         await DataService().fetchAndStoreQuranData((progress) {
@@ -69,12 +57,16 @@ class _SplashScreenState extends State<SplashScreen> {
                 _status = 'Fetching Surah List...';
               } else if (progress < 0.8) {
                 _status = 'Downloading Quran Content...';
-              } else {
+              } else if (progress < 1.0) {
                 _status = 'Saving to Database...';
+              } else {
+                _status = 'Finalizing...';
               }
             });
           }
         });
+
+        await prefs.setInt('quran_data_version', currentDataVersion);
 
         if (mounted) {
           _navigateToHome();

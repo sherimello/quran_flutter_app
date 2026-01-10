@@ -17,9 +17,9 @@ class DataService {
       await _databaseService.insertSurahs(surahs);
       onProgress(0.1);
 
-      // Fetch Arabic Quran
+      // Fetch Arabic Quran (Indopak)
       final quranResponse = await _dio.get(
-        'http://api.alquran.cloud/v1/quran/quran-uthmani',
+        'http://api.alquran.cloud/v1/quran/quran-indopak',
         onReceiveProgress: (received, total) {
           if (total != -1) {
             onProgress(0.1 + ((received / total) * 0.3)); // 0.1 -> 0.4
@@ -27,9 +27,9 @@ class DataService {
         },
       );
 
-      // Fetch English Translation
+      // Fetch English Translation (Sahih International)
       final transResponse = await _dio.get(
-        'http://api.alquran.cloud/v1/quran/en.pickthall',
+        'http://api.alquran.cloud/v1/quran/en.sahih',
         onReceiveProgress: (received, total) {
           if (total != -1) {
             onProgress(0.4 + ((received / total) * 0.3)); // 0.4 -> 0.7

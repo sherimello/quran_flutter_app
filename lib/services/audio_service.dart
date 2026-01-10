@@ -18,13 +18,17 @@ class AudioService {
   }
 
   Future<bool> isSurahDownloaded(int surahNumber, int totalAyahs) async {
-    // Check if first and last exist as a quick check, or check all.
-    // For specific requirement, checking all is safer but slower.
-    // Let's check a few or maintain a flag in DB. For now, check folder.
-    // Optimization: Check if directory contains N files starting with SSS.
-    // Simpler: Just check first ayah for now as a proxy, or assume if user clicked download it finished.
-    // Better: Helper to check specific ayah.
-    return (await getLocalAudioFile(surahNumber, 1)).exists();
+    final path = await _localPath;
+    String surahPrefix = surahNumber.toString().padLeft(3, '0');
+
+    for (int i = 1; i <= totalAyahs; i++) {
+      String ayahSuffix = i.toString().padLeft(3, '0');
+      File file = File('$path/$surahPrefix$ayahSuffix.mp3');
+      if (!await file.exists()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> downloadSurahAudio(
@@ -32,24 +36,47 @@ class AudioService {
     int totalAyahs,
     Function(double) onProgress,
   ) async {
-    try {
-      final path = await _localPath;
-      String surahPrefix = surahNumber.toString().padLeft(3, '0');
+    final path = await _localPath;
+    String surahPrefix = surahNumber.toString().padLeft(3, '0');
 
-      for (int i = 1; i <= totalAyahs; i++) {
-        String ayahSuffix = i.toString().padLeft(3, '0');
-        String fileName = '$surahPrefix$ayahSuffix.mp3';
-        String url = 'https://everyayah.com/data/Alafasy_128kbps/$fileName';
+    for (int i = 1; i <= totalAyahs; i++) {
+      String ayahSuffix = i.toString().padLeft(3, '0');
+      String fileName = '$surahPrefix$ayahSuffix.mp3';
+      String tmpFileName = '$fileName.tmp';
+      String url = 'https://everyayah.com/data/Alafasy_128kbps/$fileName';
 
-        File file = File('$path/$fileName');
-        if (!await file.exists()) {
-          await _dio.download(url, file.path);
+      File finalFile = File('$path/$fileName');
+      File tmpFile = File('$path/$tmpFileName');
+
+      if (!await finalFile.exists()) {
+        try {
+          // Download to temporary file
+          await _dio.download(url, tmpFile.path);
+          // Rename to final file only after successful download
+          await tmpFile.rename(finalFile.path);
+        } catch (e) {
+          // Cleanup partial file on failure
+          if (await tmpFile.exists()) {
+            await tmpFile.delete();
+          }
+          throw Exception('Failed to download ayah $i: $e');
         }
-
-        onProgress(i / totalAyahs);
       }
-    } catch (e) {
-      throw Exception('Failed to download audio: $e');
+
+      onProgress(i / totalAyahs);
+    }
+  }
+
+  Future<void> deleteSurahAudio(int surahNumber, int totalAyahs) async {
+    final path = await _localPath;
+    String surahPrefix = surahNumber.toString().padLeft(3, '0');
+
+    for (int i = 1; i <= totalAyahs; i++) {
+      String ayahSuffix = i.toString().padLeft(3, '0');
+      File file = File('$path/$surahPrefix$ayahSuffix.mp3');
+      if (await file.exists()) {
+        await file.delete();
+      }
     }
   }
 
@@ -58,8 +85,6 @@ class AudioService {
     if (await file.exists()) {
       return file.path;
     }
-    // If not found, maybe return online URL if we wanted online fallback,
-    // but requirement says "only play off of local storage".
     throw Exception('Audio file not found');
   }
 }

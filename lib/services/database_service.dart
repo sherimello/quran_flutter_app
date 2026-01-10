@@ -171,6 +171,16 @@ class DatabaseService {
     return await db.query('surahs', orderBy: 'number ASC');
   }
 
+  Future<Map<String, dynamic>?> getSurahByNumber(int number) async {
+    final db = await database;
+    final results = await db.query(
+      'surahs',
+      where: 'number = ?',
+      whereArgs: [number],
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
   Future<List<Map<String, dynamic>>> getAyahsForSurah(int surahNumber) async {
     final db = await database;
     return await db.query(
@@ -213,5 +223,11 @@ class DatabaseService {
   Future<void> clearLocalBookmarks() async {
     final db = await database;
     await db.delete('bookmarks');
+  }
+
+  Future<void> clearQuranData() async {
+    final db = await database;
+    await db.delete('surahs');
+    await db.delete('ayahs');
   }
 }

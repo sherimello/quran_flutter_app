@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../services/database_service.dart';
+import 'surah_detail_screen.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -159,9 +160,20 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         subtitle: Text(
                           'Saved on ${bookmark['updated_at'].toString().split('T')[0]}',
                         ),
-                        onTap: () {
-                          // Navigate to SurahDetailScreen and scroll to Ayah
-                          // For MVP just standard nav or pop
+                        onTap: () async {
+                          final surah = await DatabaseService()
+                              .getSurahByNumber(bookmark['surah_number']);
+                          if (surah != null && mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SurahDetailScreen(
+                                  surah: surah,
+                                  initialAyah: bookmark['ayah_number'],
+                                ),
+                              ),
+                            );
+                          }
                         },
                       );
                     }).toList(),
