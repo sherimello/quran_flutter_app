@@ -71,6 +71,15 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text('Show Tafseer'),
+                subtitle: const Text('Display explanation below each verse'),
+                value: settings.showTafseer,
+                onChanged: (bool value) {
+                  settings.setShowTafseer(value);
+                },
+              ),
             ],
           ),
         );

@@ -12,11 +12,16 @@ class SettingsProvider with ChangeNotifier {
     _loadSettings();
   }
 
+  bool _showTafseer = false;
+
+  bool get showTafseer => _showTafseer;
+
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final themeIndex = prefs.getInt('theme_mode') ?? 0;
     _themeMode = ThemeMode.values[themeIndex];
     _fontSize = prefs.getDouble('font_size') ?? 18.0;
+    _showTafseer = prefs.getBool('show_tafseer') ?? false;
     notifyListeners();
   }
 
@@ -31,6 +36,13 @@ class SettingsProvider with ChangeNotifier {
     _fontSize = size;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('font_size', size);
+    notifyListeners();
+  }
+
+  Future<void> setShowTafseer(bool value) async {
+    _showTafseer = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_tafseer', value);
     notifyListeners();
   }
 }

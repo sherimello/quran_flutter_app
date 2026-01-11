@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'dart:io';
+import 'package:flutter/services.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -229,5 +231,73 @@ class DatabaseService {
     final db = await database;
     await db.delete('surahs');
     await db.delete('ayahs');
+  }
+
+  // --- Tafseer Database Logic ---
+
+  Future<Database> getTafseerDatabase() async {
+    String dbPath = join(await getDatabasesPath(), 'quran_tafsir.db');
+
+    // Check if DB exists
+    bool exists = await databaseExists(dbPath);
+
+    if (!exists) {
+      // Should handle file copy
+      try {
+        await Directory(dirname(dbPath)).create(recursive: true);
+
+        ByteData data = await rootBundle.load(
+          join('assets', 'db', 'quran_tafsir.db'),
+        );
+        List<int> bytes = data.buffer.asUint8List(
+          data.offsetInBytes,
+          data.lengthInBytes,
+        );
+        await File(dbPath).writeAsBytes(bytes, flush: true);
+      } catch (e) {
+        print('Error copying Tafseer DB: $e');
+      }
+    }
+
+    return await openDatabase(dbPath, readOnly: true);
+  }
+
+  Future<String?> getTafseer(int surah, int ayah) async {
+    try {
+      final db = await getTafseerDatabase();
+      // Correct table name is 'tafseer'
+      final results = await db.query(
+        'tafseer',
+        columns: ['text'],
+        where: 'surah = ? AND ayah = ?',
+        whereArgs: [surah, ayah],
+      );
+
+      if (results.isNotEmpty) {
+        return results.first['text'] as String?;
+      }
+    } catch (e) {
+      print('Error fetching tafseer: $e');
+    }
+    return null;
+  }
+
+  Future<Map<int, String>> getTafseersForSurah(int surah) async {
+    try {
+      final db = await getTafseerDatabase();
+      final results = await db.query(
+        'tafseer',
+        columns: ['ayah', 'text'],
+        where: 'surah = ?',
+        whereArgs: [surah],
+      );
+
+      return {
+        for (final row in results) row['ayah'] as int: row['text'] as String,
+      };
+    } catch (e) {
+      print('Error fetching bulk tafseers: $e');
+    }
+    return {};
   }
 }

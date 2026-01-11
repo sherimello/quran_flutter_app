@@ -88,13 +88,16 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search Surah...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: TextStyle(
+                  color: Colors.black
+                ),
+                prefixIcon: const Icon(Icons.search, color: Colors.black,),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.9),
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
