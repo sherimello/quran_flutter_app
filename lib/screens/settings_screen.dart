@@ -64,12 +64,85 @@ class SettingsScreen extends StatelessWidget {
               ),
               Center(
                 child: Text(
-                  'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم',
+                  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
                   style: TextStyle(
-                    fontFamily: 'Amiri',
+                    fontFamily: settings.arabicScript == 'utsmani'
+                        ? 'hafs'
+                        : 'qalammajeed3',
                     fontSize: settings.fontSize,
                   ),
                 ),
+              ),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'Quran Display',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('Arabic Script'),
+                subtitle: const Text('Choose Arabic text style'),
+                trailing: DropdownButton<String>(
+                  value: settings.arabicScript,
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      settings.setArabicScript(value);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(value: 'indopak', child: Text('Indopak')),
+                    DropdownMenuItem(value: 'utsmani', child: Text('Uthmani')),
+                  ],
+                ),
+              ),
+              ListTile(
+                title: const Text('Translation'),
+                subtitle: const Text('Choose translation language'),
+                trailing: DropdownButton<String>(
+                  value: settings.translation,
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      settings.setTranslation(value);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'sahih',
+                      child: Text('Sahih International'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'jalalayn',
+                      child: Text('Jalalayn'),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                title: const Text('Pronunciation'),
+                subtitle: const Text('Show transliteration'),
+                trailing: DropdownButton<String>(
+                  value: settings.pronunciation,
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      settings.setPronunciation(value);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'latin_english',
+                      child: Text('Latin English'),
+                    ),
+                    DropdownMenuItem(value: 'latin', child: Text('Latin')),
+                    DropdownMenuItem(value: 'none', child: Text('None')),
+                  ],
+                ),
+              ),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'Advanced Features',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               SwitchListTile(
@@ -78,6 +151,14 @@ class SettingsScreen extends StatelessWidget {
                 value: settings.showTafseer,
                 onChanged: (bool value) {
                   settings.setShowTafseer(value);
+                },
+              ),
+              SwitchListTile(
+                title: const Text('Word-by-Word Translation'),
+                subtitle: const Text('Show individual word meanings'),
+                value: settings.showWordByWord,
+                onChanged: (bool value) {
+                  settings.setShowWordByWord(value);
                 },
               ),
             ],

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
-import '../services/data_service.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,65 +17,50 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAndLoadData();
+    _initializeApp();
   }
 
-  Future<void> _checkAndLoadData() async {
-    final dbService = DatabaseService();
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _initializeApp() async {
+    try {
+      setState(() {
+        _status = 'Loading Quran data...';
+        _progress = 0.3;
+      });
 
-    const int currentDataVersion = 2; // Incremented to trigger refresh
-    int savedVersion = prefs.getInt('quran_data_version') ?? 1;
+      // Initialize databases (will copy from assets if needed)
+      final dbService = DatabaseService();
 
-    bool isPopulated = await dbService.isDatabasePopulated();
+      setState(() {
+        _status = 'Preparing Quran...';
+        _progress = 0.6;
+      });
 
-    if (isPopulated && savedVersion >= currentDataVersion) {
+      await dbService.quranDatabase;
+
+      setState(() {
+        _status = 'Loading Tafseer...';
+        _progress = 0.9;
+      });
+
+      await dbService.tafseerDatabase;
+
+      setState(() {
+        _status = 'Done!';
+        _progress = 1.0;
+      });
+
+      // Small delay to show completion
+      await Future.delayed(const Duration(milliseconds: 500));
+
       if (mounted) {
         _navigateToHome();
       }
-    } else {
-      // Need to download or update
-      if (isPopulated && savedVersion < currentDataVersion) {
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _status = 'Updating to new data source...';
+          _status = 'Error: $e';
+          _isLoading = false;
         });
-        await dbService.clearQuranData();
-      } else {
-        setState(() {
-          _status = 'Downloading Quran Data...';
-        });
-      }
-
-      try {
-        await DataService().fetchAndStoreQuranData((progress) {
-          if (mounted) {
-            setState(() {
-              _progress = progress;
-              if (progress < 0.2) {
-                _status = 'Fetching Surah List...';
-              } else if (progress < 0.8) {
-                _status = 'Downloading Quran Content...';
-              } else if (progress < 1.0) {
-                _status = 'Saving to Database...';
-              } else {
-                _status = 'Finalizing...';
-              }
-            });
-          }
-        });
-
-        await prefs.setInt('quran_data_version', currentDataVersion);
-
-        if (mounted) {
-          _navigateToHome();
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _status = 'Error: $e';
-            _isLoading = false;
-          });
-        }
       }
     }
   }
@@ -98,9 +81,12 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // App Icon
+              Image.asset('assets/images/logo.png', width: 120, height: 120),
+              const SizedBox(height: 32),
               // Logo or App Name
               Text(
-                'Quran',
+                "Qur'an",
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -140,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: _checkAndLoadData,
+                  onPressed: _initializeApp,
                   child: const Text('Retry'),
                 ),
               ],

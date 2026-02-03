@@ -7,6 +7,8 @@ import 'settings_screen.dart';
 import 'bookmarks_screen.dart';
 import 'auth_screen.dart';
 import 'profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/settings_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,10 +90,8 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search Surah...',
-                hintStyle: TextStyle(
-                  color: Colors.black
-                ),
-                prefixIcon: const Icon(Icons.search, color: Colors.black,),
+                hintStyle: TextStyle(color: Colors.black),
+                prefixIcon: const Icon(Icons.search, color: Colors.black),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -193,12 +193,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       '${surah['englishNameTranslation']} • ${surah['numberOfAyahs']} Verses',
                       style: TextStyle(color: Colors.grey[600]),
                     ),
-                    trailing: Text(
-                      surah['name'] ?? '',
-                      style: const TextStyle(
-                        fontFamily: 'qalammajeed3',
-                        fontSize: 22,
-                      ),
+                    trailing: Consumer<SettingsProvider>(
+                      builder: (context, settings, child) {
+                        return Text(
+                          surah['name'] ?? '',
+                          style: TextStyle(
+                            fontFamily: settings.arabicScript == 'utsmani'
+                                ? 'hafs'
+                                : 'qalammajeed3',
+                            fontSize: 22,
+                          ),
+                        );
+                      },
                     ),
                     onTap: () {
                       Navigator.push(

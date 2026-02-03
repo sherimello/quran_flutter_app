@@ -29,33 +29,84 @@ class MyApp extends StatelessWidget {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         return MaterialApp(
-          title: 'Quran App',
+          title: "Qur'an",
           debugShowCheckedModeBanner: false,
           themeMode: settings.themeMode,
+          // --- LIGHT THEME UPDATE ---
           theme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.light,
-            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF10B981),
+            scaffoldBackgroundColor: Colors.white,
+            // LIGHT THEME COLOR SCHEME
+            colorScheme: const ColorScheme(
               brightness: Brightness.light,
-              primary: const Color(0xFF10B981),
+              primary: Color(0xFF10B981),
+              onPrimary: Colors.white,
+              primaryContainer: Color(0xFFD1FAE5), // Light green, NOT purple
+              onPrimaryContainer: Color(0xFF065F46),
+              secondary: Color(0xFF059669),
+              onSecondary: Colors.white,
+              secondaryContainer: Color(0xFFECFDF5),
+              onSecondaryContainer: Color(0xFF064E3B),
+              tertiary: Color(0xFF10B981), // Overriding tertiary prevents random purple accents
+              onTertiary: Colors.white,
+              error: Colors.red,
+              onError: Colors.white,
               surface: Colors.white,
+              onSurface: Colors.black,
+              surfaceVariant: Colors.white, // Older versions of M3 use this
+              outline: Color(0xFFE5E7EB),
+              surfaceTint: Colors.transparent, // Crucial
             ),
-            textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
-            // Pass the font size to the text theme globally or handle locally
+            // This removes the tint from all NavigationBars/BottomSheets specifically
+            canvasColor: Colors.white,
+            cardColor: Colors.white,
+
+            // Update your AppBarTheme to also ensure tint is gone
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: IconThemeData(color: Colors.black),
+            ),
+            // ... rest of your code
           ),
+
+// --- DARK THEME UPDATE ---
           darkTheme: ThemeData(
-            useMaterial3: true,
+            useMaterial3: false,
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF020617),
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF10B981),
+            scaffoldBackgroundColor: Colors.black,
+            // DARK THEME COLOR SCHEME
+            colorScheme: const ColorScheme(
               brightness: Brightness.dark,
-              primary: const Color(0xFF10B981),
-              surface: const Color(0xFF0F172A),
+              primary: Color(0xFF10B981),
+              onPrimary: Colors.white,
+              primaryContainer: Color(0xFF065F46),
+              onPrimaryContainer: Color(0xFFD1FAE5),
+              secondary: Color(0xFF34D399),
+              onSecondary: Colors.black,
+              secondaryContainer: Color(0xFF064E3B),
+              onSecondaryContainer: Color(0xFFECFDF5),
+              tertiary: Color(0xFF34D399),
+              onTertiary: Colors.black,
+              error: Colors.red,
+              onError: Colors.white,
+              surface: Colors.black,
+              onSurface: Colors.white,
+              surfaceVariant: Colors.black,
+              outline: Color(0xFF374151),
+              surfaceTint: Colors.transparent, // Crucial
             ),
-            textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+            canvasColor: Colors.black,
+            cardColor: Colors.black,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.black,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: IconThemeData(color: Colors.white),
+            ),
+            // ... rest of your code
           ),
           home: const SplashScreen(),
         );

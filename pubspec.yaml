@@ -60,6 +60,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -73,7 +80,9 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/
     - assets/db/quran_tafsir.db
+    - assets/db/Quran.db
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -90,6 +99,9 @@ flutter:
     - family: qalammajeed3
       fonts:
         - asset: assets/fonts/qalammajeed3.ttf
+    - family: hafs
+      fonts:
+        - asset: assets/fonts/hafs.ttf
   # fonts:
   #   - family: Schyler
   #     fonts:
