@@ -193,19 +193,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       '${surah['englishNameTranslation']} • ${surah['numberOfAyahs']} Verses',
                       style: TextStyle(color: Colors.grey[600]),
                     ),
-                    trailing: Consumer<SettingsProvider>(
-                      builder: (context, settings, child) {
-                        return Text(
-                          surah['name'] ?? '',
-                          style: TextStyle(
-                            fontFamily: settings.arabicScript == 'utsmani'
-                                ? 'hafs'
-                                : 'qalammajeed3',
-                            fontSize: 22,
-                          ),
-                        );
-                      },
-                    ),
+                    // trailing: Consumer<SettingsProvider>(
+                    //   builder: (context, settings, child) {
+                    //     return Text(
+                    //       surah['name'] ?? '',
+                    //       style: TextStyle(
+                    //         fontFamily: settings.arabicScript == 'utsmani'
+                    //             ? 'hafs'
+                    //             : 'qalammajeed3',
+                    //         fontSize: 22,
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
                     onTap: () {
                       Navigator.push(
                         context,

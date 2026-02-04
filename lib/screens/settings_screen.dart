@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
                     fontFamily: settings.arabicScript == 'utsmani'
                         ? 'hafs'
                         : 'qalammajeed3',
-                    fontSize: settings.fontSize,
+                    fontSize: settings.fontSize + 6,
                   ),
                 ),
               ),
