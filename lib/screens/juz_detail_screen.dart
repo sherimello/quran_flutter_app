@@ -24,8 +24,13 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   List<Map<String, dynamic>> _ayahs = [];
   bool _isLoading = true;
-  int? _playingAyahId;
+  String? _playingAyahId; // Unique ID: "surah:ayah"
   bool _isReadingMode = false;
+
+  bool _isAudioDownloaded = false;
+  bool _isDownloadingAudio = false;
+  double _downloadProgress = 0.0;
+  bool _isAutoPlaying = false;
 
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
@@ -43,10 +48,15 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     super.initState();
     _audioPlayer.onPlayerComplete.listen((event) {
       if (!mounted) return;
-      setState(() {
-        _playingAyahId = null;
-      });
+      if (_isAutoPlaying) {
+        _playNextAyah();
+      } else {
+        setState(() {
+          _playingAyahId = null;
+        });
+      }
     });
+    _checkAudioStatus();
   }
 
   @override
@@ -135,6 +145,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           _ayahs = ayahs;
           _isLoading = false;
         });
+        _checkAudioStatus();
       }
     } catch (e) {
       print("Error fetching juz verses: $e");
@@ -144,9 +155,135 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     }
   }
 
+  Future<void> _checkAudioStatus() async {
+    if (_ayahs.isEmpty) return;
+
+    // For Juz, we consider it "downloaded" only if all Surahs in it are downloaded
+    final surahNumbers = _ayahs
+        .map((e) => e['surahNumber'] as int)
+        .toSet()
+        .toList();
+
+    bool allDownloaded = true;
+    for (var sn in surahNumbers) {
+      final surahInfo = await DatabaseService().getSurahByNumber(sn);
+      if (surahInfo == null) continue;
+      final downloaded = await AudioService().isSurahDownloaded(
+        sn,
+        surahInfo['numberOfAyahs'],
+      );
+      if (!downloaded) {
+        allDownloaded = false;
+        break;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isAudioDownloaded = allDownloaded;
+      });
+    }
+  }
+
+  Future<void> _downloadAudio() async {
+    if (_isDownloadingAudio) return;
+
+    setState(() {
+      _isDownloadingAudio = true;
+      _downloadProgress = 0.0;
+    });
+
+    try {
+      final surahNumbers = _ayahs
+          .map((e) => e['surahNumber'] as int)
+          .toSet()
+          .toList();
+      int totalSurahs = surahNumbers.length;
+      int completedSurahs = 0;
+
+      for (var sn in surahNumbers) {
+        final surahInfo = await DatabaseService().getSurahByNumber(sn);
+        if (surahInfo == null) continue;
+
+        await AudioService().downloadSurahAudio(
+          sn,
+          surahInfo['numberOfAyahs'],
+          (p) {
+            if (mounted) {
+              setState(() {
+                _downloadProgress = (completedSurahs + p) / totalSurahs;
+              });
+            }
+          },
+        );
+        completedSurahs++;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isAudioDownloaded = true;
+          _isDownloadingAudio = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Juz Audio Downloaded')));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDownloadingAudio = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      }
+    }
+  }
+
+  void _toggleSequentialPlay() {
+    if (_isAutoPlaying) {
+      _audioPlayer.stop();
+      setState(() {
+        _isAutoPlaying = false;
+        _playingAyahId = null;
+      });
+    } else {
+      setState(() => _isAutoPlaying = true);
+      // Start from first visible or first ayah
+      _playAyah(_ayahs[0]['surahNumber'], _ayahs[0]['numberInSurah']);
+    }
+  }
+
+  void _playNextAyah() {
+    if (_playingAyahId == null) return;
+
+    final parts = _playingAyahId!.split(':');
+    final sNum = int.parse(parts[0]);
+    final aNum = int.parse(parts[1]);
+
+    int currentIndex = _ayahs.indexWhere(
+      (a) => a['surahNumber'] == sNum && a['numberInSurah'] == aNum,
+    );
+
+    if (currentIndex != -1 && currentIndex < _ayahs.length - 1) {
+      final next = _ayahs[currentIndex + 1];
+      _playAyah(next['surahNumber'], next['numberInSurah']);
+
+      // Auto scroll
+      _itemScrollController.scrollTo(
+        index: currentIndex + 1,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      setState(() => _isAutoPlaying = false);
+    }
+  }
+
   Future<void> _playAyah(int surahNumber, int ayahNumber) async {
     try {
-      await _audioPlayer.stop();
+      if (!_isAutoPlaying) {
+        await _audioPlayer.stop();
+      }
+
       final path = await AudioService().getAudioFilePath(
         surahNumber,
         ayahNumber,
@@ -154,7 +291,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       await _audioPlayer.play(DeviceFileSource(path));
       if (mounted) {
         setState(() {
-          _playingAyahId = ayahNumber;
+          _playingAyahId = "$surahNumber:$ayahNumber";
         });
       }
     } catch (e) {
@@ -162,6 +299,9 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Audio not available')));
+        if (_isAutoPlaying) {
+          _playNextAyah(); // Skip to next if failed
+        }
       }
     }
   }
@@ -241,6 +381,48 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     );
   }
 
+  void _showJumpToVerseDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Jump to Verse'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'Verse 1-${_ayahs.length}',
+            hintText: 'Enter sequence number in Juz',
+          ),
+          onSubmitted: (_) => _handleJump(context, controller.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => _handleJump(context, controller.text),
+            child: const Text('Go'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleJump(BuildContext dialogContext, String text) {
+    final verseNum = int.tryParse(text);
+    if (verseNum != null && verseNum > 0 && verseNum <= _ayahs.length) {
+      Navigator.pop(dialogContext);
+      _itemScrollController.jumpTo(index: verseNum - 1);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid verse number')));
+    }
+  }
+
   String _decodeLatin(String text) {
     if (text.isEmpty) return text;
     var decoded = text;
@@ -303,6 +485,40 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               ),
               const SizedBox(width: 9),
               GestureDetector(
+                onTap: _showJumpToVerseDialog,
+                child: const Icon(CupertinoIcons.list_bullet_below_rectangle),
+              ),
+              const SizedBox(width: 9),
+              if (_isDownloadingAudio)
+                Padding(
+                  padding: const EdgeInsets.all(5.0),
+                  child: SizedBox(
+                    width: size.width * .035,
+                    height: size.width * .035,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      value: _downloadProgress,
+                    ),
+                  ),
+                )
+              else if (!_isAudioDownloaded)
+                GestureDetector(
+                  onTap: _downloadAudio,
+                  child: const Icon(CupertinoIcons.cloud_download),
+                )
+              else
+                GestureDetector(
+                  onTap: _toggleSequentialPlay,
+                  child: Icon(
+                    _isAutoPlaying ? CupertinoIcons.stop : CupertinoIcons.play,
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? Colors.black
+                        : Colors.white,
+                  ),
+                ),
+              const SizedBox(width: 9),
+              GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
@@ -330,7 +546,9 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                   itemCount: _ayahs.length,
                   itemBuilder: (context, index) {
                     final ayah = _ayahs[index];
-                    final isPlaying = _playingAyahId == ayah['numberInSurah'];
+                    final isPlaying =
+                        _playingAyahId ==
+                        "${ayah['surahNumber']}:${ayah['numberInSurah']}";
 
                     String rawText = ayah['text'] ?? '';
                     String displayText = rawText;
@@ -473,6 +691,61 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                             color: Theme.of(
                               context,
                             ).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        if (isPlaying) {
+                          _audioPlayer.stop();
+                          setState(() {
+                            _playingAyahId = null;
+                            _isAutoPlaying = false;
+                          });
+                        } else {
+                          _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
+                        }
+                      },
+                      icon: Icon(
+                        isPlaying
+                            ? CupertinoIcons.pause
+                            : CupertinoIcons.play_arrow,
+                        size: 15,
+                        color: Theme.of(context).brightness == Brightness.light
+                            ? Colors.black
+                            : Colors.white,
+                      ),
+                      label: Text(
+                        isPlaying ? "Stop" : "Play",
+                        style: TextStyle(
+                          height: 1.0,
+                          fontSize: 13,
+                          color:
+                              Theme.of(context).brightness == Brightness.light
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).brightness == Brightness.light
+                            ? Colors.black.withOpacity(0.04)
+                            : Colors.white.withOpacity(0.08),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                          side: BorderSide(
+                            width: .5,
+                            color:
+                                Theme.of(context).brightness == Brightness.light
+                                ? Colors.black.withOpacity(0.15)
+                                : Colors.white.withOpacity(0.15),
                           ),
                         ),
                       ),

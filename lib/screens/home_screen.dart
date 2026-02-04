@@ -25,6 +25,8 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _filteredSurahs = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  final FocusNode _searchFocusNode = FocusNode();
 
   late TabController _tabController;
 
@@ -45,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _searchController.dispose();
     _tabController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -80,49 +83,85 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          'Qur\'an Premium',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            fontSize: size.width * .045,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(110),
-          child: Column(
-            children: [
-              // Search bar
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
+        toolbarHeight: 70,
+        title: _isSearching
+            ? Container(
+                height: 45,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? Colors.black.withOpacity(0.05)
+                      : Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 child: TextField(
                   controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  style: const TextStyle(fontSize: 14),
+                  autofocus: true,
                   decoration: InputDecoration(
                     hintText: 'Search Surah...',
-                    hintStyle: TextStyle(color: Colors.black),
-                    prefixIcon: const Icon(Icons.search, color: Colors.black),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? Colors.black54
+                          : Colors.white60,
+                      fontSize: 14,
                     ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    prefixIcon: Icon(
+                      CupertinoIcons.search,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    suffixIcon: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isSearching = false;
+                          _searchController.clear();
+                        });
+                      },
+                      child: const Icon(
+                        CupertinoIcons.clear_circled_solid,
+                        size: 18,
+                      ),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
+              )
+            : Text(
+                'Qur\'an Premium',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: size.width * .045,
+                ),
               ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Column(
+            children: [
               // Tab bar
               TabBar(
                 controller: _tabController,
+                dividerColor: Colors.transparent,
                 indicatorColor: Theme.of(context).colorScheme.primary,
+                indicatorWeight: 3,
+                indicatorSize: TabBarIndicatorSize.label,
                 labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Colors.grey,
+                unselectedLabelColor:
+                    Theme.of(context).brightness == Brightness.light
+                    ? Colors.black54
+                    : Colors.white70,
+                labelStyle: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+                unselectedLabelStyle: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                ),
                 tabs: const [
                   Tab(text: 'Surahs'),
                   Tab(text: 'Juz'),
@@ -132,49 +171,63 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         actions: [
-          if (SupabaseService().currentUser != null)
+          if (!_isSearching) ...[
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isSearching = true;
+                });
+                _searchFocusNode.requestFocus();
+              },
+              child: const Icon(CupertinoIcons.search),
+            ),
+            const SizedBox(width: 9),
+            if (SupabaseService().currentUser != null) ...[
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BookmarksScreen()),
+                  );
+                },
+                child: const Icon(CupertinoIcons.bookmark),
+              ),
+              const SizedBox(width: 9),
+            ],
             GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const BookmarksScreen()),
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
                 );
               },
-              child: const Icon(CupertinoIcons.bookmark),
+              child: const Icon(CupertinoIcons.gear),
             ),
-          const SizedBox(width: 9),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-            child: const Icon(CupertinoIcons.gear),
-          ),
-          const SizedBox(width: 9),
-          if (SupabaseService().currentUser != null)
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                );
-              },
-              child: const Icon(CupertinoIcons.person),
-            )
-          else
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AuthScreen()),
-                );
-              },
-              child: const Text('Login'),
-            ),
+            const SizedBox(width: 9),
+            if (SupabaseService().currentUser != null)
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  );
+                },
+                child: const Icon(CupertinoIcons.person),
+              )
+            else
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                },
+                icon: const Icon(CupertinoIcons.person_crop_circle),
+                padding: EdgeInsets.zero,
+              ),
+          ],
         ],
-        actionsPadding: const EdgeInsets.only(right: 11),
+        actionsPadding: const EdgeInsets.only(right: 16),
       ),
       body: TabBarView(
         controller: _tabController,
