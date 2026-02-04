@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../services/database_service.dart';
@@ -124,7 +125,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   },
                   child: ExpansionTile(
                     title: Text(folderName),
-                    leading: const Icon(Icons.folder),
+                    leading: const Icon(CupertinoIcons.folder),
                     children: bookmarks.map((bookmark) {
                       return ListTile(
                         onLongPress: () {

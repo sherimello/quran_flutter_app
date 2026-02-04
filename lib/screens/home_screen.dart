@@ -1,14 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../services/database_service.dart';
 import '../services/supabase_service.dart';
-import 'surah_detail_screen.dart';
-import 'settings_screen.dart';
-import 'bookmarks_screen.dart';
 import 'auth_screen.dart';
+import 'bookmarks_screen.dart';
 import 'profile_screen.dart';
-import 'package:provider/provider.dart';
-import '../providers/settings_provider.dart';
+import 'settings_screen.dart';
+import 'surah_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -72,12 +72,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
-          'Quran App',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          'Qur\'an Premium',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: size.width * .045),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -105,34 +107,44 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           if (SupabaseService().currentUser != null)
-            IconButton(
-              icon: const Icon(Icons.bookmark),
-              onPressed: () {
+            GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const BookmarksScreen()),
                 );
               },
+              child: const Icon(CupertinoIcons.bookmark),
             ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
+          const SizedBox(width: 9,),
+          GestureDetector(
+            onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
-          ),
+            child: const Icon(CupertinoIcons.gear),),
+          const SizedBox(width: 9,),
           if (SupabaseService().currentUser != null)
-            IconButton(
-              icon: const Icon(Icons.account_circle),
-              onPressed: () {
+            GestureDetector(
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ProfileScreen()),
                 );
               },
+              child: const Icon(CupertinoIcons.person),
             )
+          // IconButton(
+          //   icon:
+          //   onPressed: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (_) => const ProfileScreen()),
+          //     );
+          //   },
+          // )
           else
             TextButton(
               onPressed: () {
@@ -144,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Login'),
             ),
         ],
+        actionsPadding: EdgeInsets.only(right: 11),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

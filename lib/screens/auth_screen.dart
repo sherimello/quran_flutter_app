@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import 'home_screen.dart';
@@ -95,6 +97,7 @@ class _AuthScreenState extends State<AuthScreen>
         );
       }
     } catch (e) {
+      log(e.toString().replaceAll('Exception: ', ''));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

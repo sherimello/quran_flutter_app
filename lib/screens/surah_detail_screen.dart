@@ -8,6 +8,7 @@ import '../services/database_service.dart';
 import '../services/audio_service.dart';
 import '../services/supabase_service.dart';
 import '../providers/settings_provider.dart';
+import 'settings_screen.dart';
 
 class SurahDetailScreen extends StatefulWidget {
   final Map<String, dynamic> surah;
@@ -28,6 +29,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   double _downloadProgress = 0.0;
   int? _playingAyahId;
   bool _isAutoPlaying = false;
+  bool _isReadingMode = false;
 
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
@@ -475,6 +477,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
+
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         bool showBasmalaHeader =
@@ -485,34 +489,74 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(widget.surah['englishName']),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.format_list_numbered),
-                tooltip: 'Jump to Verse',
-                onPressed: _showJumpToVerseDialog,
+            titleSpacing: 0,
+            title: Text(
+              widget.surah['englishName'],
+              style: TextStyle(
+                fontSize: size.width * .041,
+                fontWeight: FontWeight.w900,
               ),
+            ),
+            actions: [
+              GestureDetector(
+                onTap: () => setState(() => _isReadingMode = !_isReadingMode),
+                child: Icon(
+                  _isReadingMode
+                      ? CupertinoIcons.book_fill
+                      : CupertinoIcons.book,
+                  color: _isReadingMode
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 9),
+              GestureDetector(
+                onTap: _showJumpToVerseDialog,
+                child: const Icon(CupertinoIcons.list_bullet_below_rectangle),
+              ),
+              const SizedBox(width: 9),
               if (_isDownloadingAudio)
                 Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: CircularProgressIndicator(value: _downloadProgress),
+                  padding: const EdgeInsets.all(5.0),
+                  child: SizedBox(
+                    width: size.width * .035,
+                    height: size.width * .035,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      value: _downloadProgress,
+                    ),
+                  ),
                 )
               else if (!_isAudioDownloaded)
-                IconButton(
-                  icon: const Icon(Icons.download),
-                  onPressed: _downloadAudio,
+                GestureDetector(
+                  onTap: _downloadAudio,
+                  child: const Icon(CupertinoIcons.cloud_download),
                 )
               else
-                IconButton(
-                  icon: Icon(
-                    _isAutoPlaying ? Icons.pause_circle : Icons.play_circle,
+                GestureDetector(
+                  onTap: _toggleSequentialPlay,
+                  child: Icon(
+                    _isAutoPlaying ? CupertinoIcons.stop : CupertinoIcons.play,
                     color: Theme.of(context).brightness == Brightness.light
                         ? Colors.black
                         : Colors.white,
                   ),
-                  onPressed: _toggleSequentialPlay,
                 ),
+              const SizedBox(width: 9),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+                child: const Icon(CupertinoIcons.gear),
+              ),
             ],
+            actionsPadding: EdgeInsets.only(right: size.width * .035),
           ),
           body: _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -604,6 +648,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
+                                      // if (!_isReadingMode)
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -647,22 +692,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             ),
                                           ),
 
-                                          // CircleAvatar(
-                                          //   radius: 14,
-                                          //   backgroundColor: Theme.of(
-                                          //     context,
-                                          //   ).colorScheme.primaryContainer,
-                                          //   child: Text(
-                                          //     '${ayah['numberInSurah']}',
-                                          //     style: TextStyle(
-                                          //       fontSize: 12,
-                                          //       color: Theme.of(context)
-                                          //           .colorScheme
-                                          //           .onPrimaryContainer,
-                                          //     ),
-                                          //   ),
-                                          // ),
-                                          if (_isAudioDownloaded)
+                                          if (!_isReadingMode &&
+                                              _isAudioDownloaded)
                                             TextButton.icon(
                                               onPressed: () {
                                                 _playAyah(
@@ -765,7 +796,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                         ),
                                       ),
 
-
                                       // TRANSLITERATION
                                       if (settings.pronunciation != 'none' &&
                                           ayah['pronunciation'] != null) ...[
@@ -776,7 +806,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             '<div style="text-align: end;">${ayah['pronunciation']}</div>',
                                             textStyle: TextStyle(
                                               fontSize:
-                                              settings.fontSize * 0.75,
+                                                  settings.fontSize * 0.75,
                                               color: Theme.of(
                                                 context,
                                               ).colorScheme.primary,
@@ -789,7 +819,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             textAlign: TextAlign.end,
                                             style: TextStyle(
                                               fontSize:
-                                              settings.fontSize * 0.75,
+                                                  settings.fontSize * 0.75,
                                               color: Theme.of(
                                                 context,
                                               ).colorScheme.primary,
@@ -798,8 +828,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             ),
                                           ),
                                       ],
+                                      const SizedBox(height: 11),
                                       // WORD BY WORD UI
-                                      if (settings.showWordByWord &&
+                                      if (!_isReadingMode &&
+                                          settings.showWordByWord &&
                                           ayah['words'] != null) ...[
                                         const SizedBox(height: 16),
                                         Wrap(
@@ -855,9 +887,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                     style: TextStyle(
                                                       fontFamily: arabicFont,
                                                       fontSize:
-                                                          settings.fontSize + 2,
+                                                          size.width * .047,
+                                                      height: 0,
                                                       fontWeight:
-                                                          FontWeight.bold,
+                                                          FontWeight.normal,
                                                       color: Theme.of(
                                                         context,
                                                       ).colorScheme.onSurface,
@@ -883,24 +916,30 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                           }).toList(),
                                         ),
                                       ],
+                                      if (!_isReadingMode)
+                                        const SizedBox(height: 11),
 
                                       // TRANSLATION
-                                      if (ayah['translation'] != null) ...[
+                                      if (!_isReadingMode &&
+                                          ayah['translation'] != null) ...[
                                         const SizedBox(height: 11),
                                         Text(
                                           ayah['translation'],
                                           textAlign: TextAlign.left,
                                           style: TextStyle(
-                                            fontSize: settings.fontSize * 0.85,
+                                            fontSize: settings.fontSize - 4,
+                                            // fontSize: settings.fontSize * 0.75,
                                             color: Theme.of(
                                               context,
                                             ).textTheme.bodyLarge?.color,
+                                            fontWeight: FontWeight.normal,
                                           ),
                                         ),
                                       ],
 
                                       // TAFSEER
-                                      if (settings.showTafseer &&
+                                      if (!_isReadingMode &&
+                                          settings.showTafseer &&
                                           ayah['tafseer'] != null) ...[
                                         const SizedBox(height: 12),
                                         GestureDetector(
