@@ -219,14 +219,19 @@ class DatabaseService {
       );
     }
 
+    // Get surah name for headers
+    final surahInfo = await getSurahByNumber(surahNumber);
+    final surahName = surahInfo?['englishName'] ?? 'Surah $surahNumber';
+
     // Combine results
     List<Map<String, dynamic>> ayahs = [];
     for (int i = 0; i < arabicResults.length; i++) {
       Map<String, dynamic> ayah = {
-        'number': i + 1, // Global verse number (not used much)
+        'number': surahNumber, // Surah number (not global verse count)
         'text': arabicResults[i]['text'],
         'numberInSurah': arabicResults[i]['aya'],
         'surahNumber': surahNumber,
+        'surahName': surahName,
       };
 
       if (i < translationResults.length) {
