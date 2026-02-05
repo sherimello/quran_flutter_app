@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/semantic_search_service.dart';
 import '../models/tafseer_embedding.dart';
@@ -17,6 +19,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final SemanticSearchService _searchService = SemanticSearchService();
 
+  Timer? _debounce;
   List<SearchResult> _results = [];
   bool _isSearching = false;
   bool _isLoading = true;
@@ -30,8 +33,25 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      if (query.trim().isNotEmpty) {
+        _performSearch();
+      } else {
+        setState(() {
+          _results = [];
+        });
+      }
+    });
+
+    setState(() {});
   }
 
   Future<void> _loadEmbeddings() async {
@@ -72,11 +92,8 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
     });
 
     try {
-      // Use keyword-based search
-      final results = await _searchService.searchByKeywords(
-        query,
-        maxResults: 30,
-      );
+      // Use smart search (semantic if available, else keyword)
+      final results = await _searchService.search(query, maxResults: 30);
 
       if (mounted) {
         setState(() {
@@ -132,6 +149,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
               child: Center(
                 child: TextField(
                   controller: _searchController,
+                  onChanged: _onSearchChanged,
                   style: const TextStyle(fontSize: 14),
                   textAlignVertical: TextAlignVertical.center,
                   decoration: InputDecoration(
@@ -141,7 +159,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                           ? Colors.black54
                           : Colors.white60,
                       fontSize: 14,
-                      height: 0
+                      height: 0,
                     ),
                     prefixIcon: Icon(
                       CupertinoIcons.search,
@@ -165,9 +183,9 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  onChanged: (value) {
-                    setState(() {});
-                  },
+                  // onChanged: (value) {
+                  //   setState(() {});
+                  // },
                   onSubmitted: (value) => _performSearch(),
                 ),
               ),
@@ -357,11 +375,11 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
+              HtmlWidget(
                 result.snippet,
-                style: const TextStyle(height: 1.6, fontSize: 14),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
+                textStyle: const TextStyle(height: 1.6, fontSize: 14),
+                // maxLines: 4,
+                // overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               Row(

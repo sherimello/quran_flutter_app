@@ -49,6 +49,7 @@ dependencies:
   dio: ^5.4.0
   scrollable_positioned_list: ^0.3.8
   flutter_widget_from_html: ^0.17.1
+  onnxruntime: ^1.4.1
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +85,7 @@ flutter:
     - assets/db/quran_tafsir.db
     - assets/db/Quran.db
     - assets/embeddings/
+    - assets/models/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

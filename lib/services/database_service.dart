@@ -528,4 +528,53 @@ class DatabaseService {
     }
     return {};
   }
+
+  /// Get Tafseer entries by a list of IDs
+  /// Used for hydrating search results efficiently
+  Future<Map<int, Map<String, dynamic>>> getTafseerByIds(List<int> ids) async {
+    if (ids.isEmpty) return {};
+
+    try {
+      final db = await tafseerDatabase;
+      // Use WHERE IN clause
+      final placeholders = List.filled(ids.length, '?').join(',');
+      final results = await db.query(
+        'tafseer',
+        columns: ['id', 'surah', 'ayah', 'verse_key', 'text'],
+        where: 'id IN ($placeholders)',
+        whereArgs: ids,
+      );
+
+      return {
+        for (final row in results)
+          row['id'] as int: {
+            'text': row['text'],
+            'verse_key': row['verse_key'],
+            'surah': row['surah'],
+            'ayah': row['ayah'],
+          },
+      };
+    } catch (e) {
+      print('Error fetching tafseer by IDs: $e');
+      return {};
+    }
+  }
+
+  /// Search Tafseer text using SQL LIKE (fallback for keyword search)
+  Future<List<Map<String, dynamic>>> searchTafseerKeywords(String query) async {
+    try {
+      final db = await tafseerDatabase;
+      final results = await db.query(
+        'tafseer',
+        columns: ['id', 'surah', 'ayah', 'verse_key', 'text'],
+        where: 'text LIKE ?',
+        whereArgs: ['%$query%'],
+        limit: 50,
+      );
+      return results;
+    } catch (e) {
+      print('Error searching tafseer keywords: $e');
+      return [];
+    }
+  }
 }

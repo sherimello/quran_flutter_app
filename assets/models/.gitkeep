@@ -1,0 +1,4 @@
+# Placeholder for TFLite model directory
+# Run convert_model_to_tflite.py to generate:
+# - sentence_encoder.tflite
+# - vocab.txt
