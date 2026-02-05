@@ -11,6 +11,7 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'surah_detail_screen.dart';
 import 'juz_detail_screen.dart';
+import 'contextual_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -172,6 +173,18 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         actions: [
           if (!_isSearching) ...[
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ContextualSearchScreen(),
+                  ),
+                );
+              },
+              child: const Icon(CupertinoIcons.sparkles),
+            ),
+            const SizedBox(width: 9),
             GestureDetector(
               onTap: () {
                 setState(() {

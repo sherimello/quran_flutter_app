@@ -1,0 +1,3 @@
+# Placeholder file for embeddings directory
+# Run generate_tafseer_embeddings.py to generate tafseer_embeddings.json
+# See EMBEDDINGS_README.md for instructions
