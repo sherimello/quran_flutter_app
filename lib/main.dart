@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:home_widget/home_widget.dart';
 import 'providers/settings_provider.dart';
 import 'screens/splash_screen.dart';
 
@@ -12,6 +13,9 @@ Future<void> main() async {
     url: 'https://viljtvwbloyxrxklpbdj.supabase.co',
     anonKey: 'sb_publishable_eMvOL9NuzHoyYb0KiseQyw_QEAQZqyb',
   );
+
+  // Initialize HomeWidget
+  await HomeWidget.setAppGroupId('group.com.example.quran_flutter_app');
 
   runApp(
     MultiProvider(
@@ -48,7 +52,9 @@ class MyApp extends StatelessWidget {
               onSecondary: Colors.white,
               secondaryContainer: Color(0xFFECFDF5),
               onSecondaryContainer: Color(0xFF064E3B),
-              tertiary: Color(0xFF10B981), // Overriding tertiary prevents random purple accents
+              tertiary: Color(
+                0xFF10B981,
+              ), // Overriding tertiary prevents random purple accents
               onTertiary: Colors.white,
               error: Colors.red,
               onError: Colors.white,
@@ -72,7 +78,7 @@ class MyApp extends StatelessWidget {
             // ... rest of your code
           ),
 
-// --- DARK THEME UPDATE ---
+          // --- DARK THEME UPDATE ---
           darkTheme: ThemeData(
             useMaterial3: false,
             brightness: Brightness.dark,

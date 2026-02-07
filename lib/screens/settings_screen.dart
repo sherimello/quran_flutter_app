@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import 'widget_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -159,6 +160,21 @@ class SettingsScreen extends StatelessWidget {
                 value: settings.showWordByWord,
                 onChanged: (bool value) {
                   settings.setShowWordByWord(value);
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.widgets),
+                title: const Text('Home Screen Widget'),
+                subtitle: const Text('Manage verses & behavior'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const WidgetSettingsScreen(),
+                    ),
+                  );
                 },
               ),
             ],

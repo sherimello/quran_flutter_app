@@ -50,6 +50,7 @@ dependencies:
   scrollable_positioned_list: ^0.3.8
   flutter_widget_from_html: ^0.17.1
   onnxruntime: ^1.4.1
+  home_widget: ^0.7.0
 
 dev_dependencies:
   flutter_test:

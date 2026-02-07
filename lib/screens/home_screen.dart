@@ -1,8 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../services/widget_service.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/database_service.dart';
+
 import '../services/supabase_service.dart';
 import '../data/juz_data.dart';
 import 'auth_screen.dart';
@@ -34,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    WidgetService.updateWidget();
     _tabController = TabController(length: 2, vsync: this);
     _fetchSurahs();
     _searchController.addListener(_onSearchChanged);
@@ -228,16 +232,24 @@ class _HomeScreenState extends State<HomeScreen>
                 child: const Icon(CupertinoIcons.person),
               )
             else
-              IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AuthScreen()),
-                  );
-                },
-                icon: const Icon(CupertinoIcons.person_crop_circle),
-                padding: EdgeInsets.zero,
-              ),
+              GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                    );
+                  },
+                  child: const Icon(CupertinoIcons.person_circle)),
+              // IconButton(
+              //   onPressed: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (_) => const AuthScreen()),
+              //     );
+              //   },
+              //   icon: const Icon(CupertinoIcons.person_crop_circle),
+              //   padding: EdgeInsets.zero,
+              // ),
           ],
         ],
         actionsPadding: const EdgeInsets.only(right: 16),
