@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/tajweed_service.dart';
 import 'widget_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -162,6 +163,69 @@ class SettingsScreen extends StatelessWidget {
                   settings.setShowWordByWord(value);
                 },
               ),
+              SwitchListTile(
+                title: const Text('Tajweed Coloring'),
+                subtitle: const Text('Highlight rules (Ikhfaa, Idghaam, etc.)'),
+                value: settings.enableTajweed,
+                activeColor: Colors.orange,
+                onChanged: (bool value) {
+                  settings.setEnableTajweed(value);
+                },
+              ),
+              if (settings.enableTajweed)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Color Legend:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        children: [
+                          _buildLegendItem(
+                            'Ghunna (2 Harakat)',
+                            TajweedRenderer.ghunnaColor,
+                          ),
+                          _buildLegendItem(
+                            'Idghaam (w/ Ghunna)',
+                            TajweedRenderer.idghaamGhunnaColor,
+                          ),
+                          _buildLegendItem(
+                            'Idghaam (No Ghunna)',
+                            TajweedRenderer.idghaamNoGhunnaColor,
+                          ),
+                          _buildLegendItem(
+                            'Idghaam Meem',
+                            TajweedRenderer.idghaamMeemColor,
+                          ),
+                          _buildLegendItem(
+                            'Iqlaab',
+                            TajweedRenderer.iqlaabColor,
+                          ),
+                          _buildLegendItem(
+                            'Ikhfaa',
+                            TajweedRenderer.ikhfaaColor,
+                          ),
+                          _buildLegendItem(
+                            'Qalqala',
+                            TajweedRenderer.qalqalaColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.widgets),
@@ -181,6 +245,21 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 }

@@ -24,19 +24,6 @@ class SettingsProvider with ChangeNotifier {
     _loadSettings();
   }
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt('theme_mode') ?? 0;
-    _themeMode = ThemeMode.values[themeIndex];
-    _fontSize = prefs.getDouble('font_size') ?? 18.0;
-    _showTafseer = prefs.getBool('show_tafseer') ?? false;
-    _arabicScript = prefs.getString('arabic_script') ?? 'indopak';
-    _translation = prefs.getString('translation') ?? 'sahih';
-    _pronunciation = prefs.getString('pronunciation') ?? 'latin_english';
-    _showWordByWord = prefs.getBool('show_word_by_word') ?? false;
-    notifyListeners();
-  }
-
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
     final prefs = await SharedPreferences.getInstance();
@@ -83,6 +70,32 @@ class SettingsProvider with ChangeNotifier {
     _showWordByWord = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_word_by_word', value);
+    notifyListeners();
+  }
+
+  // Tajweed Settings
+  bool _enableTajweed = false;
+  bool get enableTajweed => _enableTajweed;
+
+  Future<void> setEnableTajweed(bool value) async {
+    _enableTajweed = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_tajweed', value);
+    notifyListeners();
+  }
+
+  // Load implementation override
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeIndex = prefs.getInt('theme_mode') ?? 0;
+    _themeMode = ThemeMode.values[themeIndex];
+    _fontSize = prefs.getDouble('font_size') ?? 18.0;
+    _showTafseer = prefs.getBool('show_tafseer') ?? false;
+    _arabicScript = prefs.getString('arabic_script') ?? 'indopak';
+    _translation = prefs.getString('translation') ?? 'sahih';
+    _pronunciation = prefs.getString('pronunciation') ?? 'latin_english';
+    _showWordByWord = prefs.getBool('show_word_by_word') ?? false;
+    _enableTajweed = prefs.getBool('enable_tajweed') ?? false;
     notifyListeners();
   }
 }

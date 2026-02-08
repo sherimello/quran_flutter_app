@@ -7,6 +7,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import '../services/database_service.dart';
 import '../services/audio_service.dart';
 import '../services/supabase_service.dart';
+import '../services/tajweed_service.dart';
 import '../providers/settings_provider.dart';
 import 'settings_screen.dart';
 
@@ -775,26 +776,53 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                       ),
                                       const SizedBox(height: 11),
                                       // Row: number and actions
-                                      Text(
-                                        displayText.replaceAllMapped(
-                                          RegExp(r'([\u06D6-\u06ED])'),
-                                          (match) =>
-                                              '${match.group(0)} \u200C ',
-                                        ),
-                                        // .replaceAll(
-                                        //   RegExp(r'\s+'),
-                                        //   '   \u200C   ',
-                                        // ),
-                                        textAlign: TextAlign.right,
-                                        textDirection: TextDirection.rtl,
-                                        style: TextStyle(
-                                          fontFamily: arabicFont,
-                                          fontSize: settings.fontSize + 6,
-                                          height: 1.8,
-                                          wordSpacing:
-                                              0.0, // Ensure words don't visually merge
-                                        ),
-                                      ),
+                                      settings.enableTajweed
+                                          ? RichText(
+                                              textAlign: TextAlign.right,
+                                              textDirection: TextDirection.rtl,
+                                              text: TextSpan(
+                                                children:
+                                                    TajweedRenderer.getTajweedSpans(
+                                                      displayText.replaceAllMapped(
+                                                        RegExp(r'([\u06D6-\u06DC])'),
+                                                            (match) =>
+                                                        '   ${match.group(0)} ',
+                                                      ),
+                                                      TextStyle(
+                                                        fontFamily: arabicFont,
+                                                        fontSize:
+                                                            settings.fontSize +
+                                                            6,
+                                                        height: 1.8,
+                                                        wordSpacing: 0,
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.onSurface,
+                                                      ),
+                                                      isIndopak:
+                                                          arabicFont ==
+                                                          'qalammajeed3',
+                                                    ),
+                                              ),
+                                            )
+                                          : Text(
+                                              displayText.replaceAllMapped(
+                                                RegExp(r'([\u06D6-\u06DC])'),
+                                                (match) =>
+                                                    '      ${match.group(0)} ',
+                                              ),
+                                              textAlign: TextAlign.right,
+                                              textDirection: TextDirection.rtl,
+                                              style: TextStyle(
+                                                fontFamily: arabicFont,
+                                                fontSize: settings.fontSize + 6,
+                                                height: 1.8,
+                                                wordSpacing: 0,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                              ),
+                                            ),
 
                                       // TRANSLITERATION
                                       if (settings.pronunciation != 'none' &&
