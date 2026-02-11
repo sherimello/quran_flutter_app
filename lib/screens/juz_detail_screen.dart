@@ -36,12 +36,15 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
 
-  static const String _basmalaHeader = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
-
   String? _currentScript;
   String? _currentTranslation;
   String? _currentPronunciation;
   bool? _currentShowWordByWord;
+  String? _currentWbwLanguage;
+  String? _currentWbwTransliteration;
+  bool? _currentShowWbwTransliteration;
+  bool? _currentShowTafseer;
+  Map<String, dynamic>? _juzInfo;
 
   @override
   void initState() {
@@ -67,11 +70,19 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     if (_currentScript != settings.arabicScript ||
         _currentTranslation != settings.translation ||
         _currentPronunciation != settings.pronunciation ||
-        _currentShowWordByWord != settings.showWordByWord) {
+        _currentShowWordByWord != settings.showWordByWord ||
+        _currentWbwLanguage != settings.wordByWordLanguage ||
+        _currentWbwTransliteration != settings.wordByWordTransliteration ||
+        _currentShowWbwTransliteration != settings.showWbwTransliteration ||
+        _currentShowTafseer != settings.showTafseer) {
       _currentScript = settings.arabicScript;
       _currentTranslation = settings.translation;
       _currentPronunciation = settings.pronunciation;
       _currentShowWordByWord = settings.showWordByWord;
+      _currentWbwLanguage = settings.wordByWordLanguage;
+      _currentWbwTransliteration = settings.wordByWordTransliteration;
+      _currentShowWbwTransliteration = settings.showWbwTransliteration;
+      _currentShowTafseer = settings.showTafseer;
 
       _fetchJuzVerses();
     }
@@ -92,6 +103,11 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     final endVerse = juzInfo['end']['verse'];
 
     try {
+      // Fetch Juz Info
+      final juzInfoResult = await DatabaseService().getJuzInfo(
+        widget.juzNumber,
+      );
+
       List<Map<String, dynamic>> ayahs = [];
 
       // Fetch verses from start surah to end surah
@@ -120,6 +136,8 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           final words = await DatabaseService().getWordByWordForAyah(
             ayah['number'],
             ayah['numberInSurah'],
+            language: settings.wordByWordLanguage,
+            transliteration: settings.wordByWordTransliteration,
           );
           ayah['words'] = words;
         }
@@ -143,6 +161,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       if (mounted) {
         setState(() {
           _ayahs = ayahs;
+          _juzInfo = juzInfoResult;
           _isLoading = false;
         });
         _checkAudioStatus();
@@ -423,6 +442,89 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     }
   }
 
+  void _showJuzInfo() {
+    if (_juzInfo == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Juz Information',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (_juzInfo!['juz_info'] != null &&
+                          _juzInfo!['juz_info'].toString().isNotEmpty) ...[
+                        const Text(
+                          'Background',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _juzInfo!['juz_info'],
+                          style: const TextStyle(fontSize: 16, height: 1.5),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      if (_juzInfo!['juz_learning'] != null &&
+                          _juzInfo!['juz_learning'].toString().isNotEmpty) ...[
+                        const Text(
+                          'Learning Points',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _juzInfo!['juz_learning'],
+                          style: const TextStyle(fontSize: 16, height: 1.5),
+                        ),
+                      ],
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   String _decodeLatin(String text) {
     if (text.isEmpty) return text;
     var decoded = text;
@@ -487,6 +589,11 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               GestureDetector(
                 onTap: _showJumpToVerseDialog,
                 child: const Icon(CupertinoIcons.list_bullet_below_rectangle),
+              ),
+              const SizedBox(width: 9),
+              GestureDetector(
+                onTap: _showJuzInfo,
+                child: const Icon(CupertinoIcons.info_circle),
               ),
               const SizedBox(width: 9),
               if (_isDownloadingAudio)
@@ -573,15 +680,67 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                         if (isNewSurah) ...[
                           Padding(
                             padding: const EdgeInsets.only(top: 16, bottom: 8),
-                            child: Text(
-                              ayah['surahName'] ?? 'Surah ${ayah['number']}',
-                              style: TextStyle(
-                                fontFamily: arabicFont,
-                                fontSize: settings.fontSize + 4,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              textAlign: TextAlign.center,
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'surah${ayah['number'].toString().length == 3
+                                          ? ayah['number'].toString()
+                                          : ayah['number'].toString().length == 2
+                                          ? "0${ayah['number']}"
+                                          : "00${ayah['number']}"}',
+                                      style: TextStyle(
+                                        fontFamily: 'surahname',
+                                        fontSize: size.width * .1,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          ayah['surahName'] ??
+                                              'Surah ${ayah['number']}',
+                                          style: TextStyle(
+                                            fontSize: size.width * .045,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            height: 0,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        Text(
+                                          '${ayah['totalVerses'] ?? 0} Verses',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withAlpha(95),
+                                            fontWeight: FontWeight.w900,
+                                            height: 0,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                // const SizedBox(height: 4),
+                                // Text(
+                                //   '${ayah['totalVerses'] ?? 0} Verses',
+                                //   style: TextStyle(
+                                //     fontSize: 12,
+                                //     color: Theme.of(context).disabledColor,
+                                //     fontWeight: FontWeight.w500,
+                                //   ),
+                                // ),
+                              ],
                             ),
                           ),
                         ],
@@ -589,13 +748,13 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                         // Basmala header
                         if (showBasmala)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.only(bottom: 0),
                             child: Text(
-                              _basmalaHeader,
+                              'g',
                               style: TextStyle(
-                                fontFamily: arabicFont,
-                                fontSize: settings.fontSize + 8,
-                                color: Theme.of(context).colorScheme.primary,
+                                fontFamily: 'besmallah',
+                                fontSize: settings.fontSize + 27,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -670,15 +829,17 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                       height: size.width * 0.071,
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(7),
+                        borderRadius: BorderRadius.circular(100),
                         color: Theme.of(context).brightness == Brightness.light
                             ? Theme.of(
                                 context,
-                              ).colorScheme.primary.withOpacity(0.07)
+                              ).colorScheme.primary.withOpacity(0.1)
                             : Colors.white.withAlpha(15),
                         border: Border.all(
                           width: 1,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1),
                         ),
                       ),
                       child: Center(
@@ -687,7 +848,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             height: 0,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w900,
                             color: Theme.of(
                               context,
                             ).colorScheme.onPrimaryContainer,
@@ -834,11 +995,26 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                               fontFamily: arabicFont,
                               fontSize: size.width * .047,
                               height: 0,
-                              fontWeight: FontWeight.normal,
+                              fontWeight: FontWeight.w900,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
+                          if (settings.showWbwTransliteration &&
+                              word['transliteration'] != null &&
+                              word['transliteration']
+                                  .toString()
+                                  .isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              word['transliteration'],
+                              style: TextStyle(
+                                fontSize: settings.fontSize * 0.55,
+                                fontStyle: FontStyle.italic,
+                                color: Theme.of(context).colorScheme.tertiary,
+                              ),
+                            ),
+                          ],
                           Text(
                             word['translation'] ?? '',
                             style: TextStyle(

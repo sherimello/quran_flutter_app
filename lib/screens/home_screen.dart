@@ -233,23 +233,24 @@ class _HomeScreenState extends State<HomeScreen>
               )
             else
               GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    );
-                  },
-                  child: const Icon(CupertinoIcons.person_circle)),
-              // IconButton(
-              //   onPressed: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(builder: (_) => const AuthScreen()),
-              //     );
-              //   },
-              //   icon: const Icon(CupertinoIcons.person_crop_circle),
-              //   padding: EdgeInsets.zero,
-              // ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                },
+                child: const Icon(CupertinoIcons.person_circle),
+              ),
+            // IconButton(
+            //   onPressed: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (_) => const AuthScreen()),
+            //     );
+            //   },
+            //   icon: const Icon(CupertinoIcons.person_crop_circle),
+            //   padding: EdgeInsets.zero,
+            // ),
           ],
         ],
         actionsPadding: const EdgeInsets.only(right: 16),
@@ -313,6 +314,10 @@ class _HomeScreenState extends State<HomeScreen>
             subtitle: Text(
               '${surah['englishNameTranslation']} • ${surah['numberOfAyahs']} Verses',
               style: TextStyle(color: Colors.grey[600]),
+            ),
+            trailing: Text(
+              '${surah['number']}',
+              style: const TextStyle(fontFamily: 'surahname', fontSize: 32),
             ),
             onTap: () {
               Navigator.push(

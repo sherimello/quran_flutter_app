@@ -62,10 +62,36 @@ class DatabaseService {
     );
   }
 
+  // Helper to force update Quran.db
+  Future<void> clearQuranData() async {
+    String dbPath = join(await getDatabasesPath(), 'Quran.db');
+    if (await File(dbPath).exists()) {
+      await File(dbPath).delete();
+      print('Deleted old Quran.db to force update');
+    }
+    _quranDatabase = null; // Reset instance
+  }
+
   Future<Database> _initQuranDB() async {
     String dbPath = join(await getDatabasesPath(), 'Quran.db');
 
     bool exists = await databaseExists(dbPath);
+
+    // Check if we need to update the DB (e.g. if 'allwords' or 'corpus' table is missing)
+    if (exists) {
+      final db = await openDatabase(dbPath, readOnly: true);
+      try {
+        await db.rawQuery('SELECT 1 FROM allwords LIMIT 1');
+        await db.rawQuery('SELECT 1 FROM corpus LIMIT 1');
+        await db.rawQuery('SELECT 1 FROM chapter_information LIMIT 1');
+        await db.rawQuery('SELECT 1 FROM juz_information LIMIT 1');
+      } catch (e) {
+        print('Required table missing. Forcing DB update...');
+        await db.close();
+        await File(dbPath).delete();
+        exists = false;
+      }
+    }
 
     if (!exists) {
       try {
@@ -223,6 +249,9 @@ class DatabaseService {
     final surahInfo = await getSurahByNumber(surahNumber);
     final surahName = surahInfo?['englishName'] ?? 'Surah $surahNumber';
 
+    // Explicitly count ayahs from the DB to ensure accuracy
+    final totalVerses = await _getAyahCountForSurah(surahNumber);
+
     // Combine results
     List<Map<String, dynamic>> ayahs = [];
     for (int i = 0; i < arabicResults.length; i++) {
@@ -232,6 +261,8 @@ class DatabaseService {
         'numberInSurah': arabicResults[i]['aya'],
         'surahNumber': surahNumber,
         'surahName': surahName,
+        'numberOfAyahs': totalVerses,
+        'totalVerses': totalVerses,
       };
 
       if (i < translationResults.length) {
@@ -248,51 +279,137 @@ class DatabaseService {
     return ayahs;
   }
 
-  /// Get word-by-word translation for a specific ayah
+  /// Get word-by-word translation for a specific ayah from 'allwords' table
   Future<List<Map<String, dynamic>>> getWordByWordForAyah(
     int surah,
-    int ayah,
-  ) async {
+    int ayah, {
+    String language = 'en',
+    String transliteration = 'en_trans',
+  }) async {
     final db = await quranDatabase;
 
-    final results = await db.query(
-      'kata_quran',
-      where: 'sura = ? AND aya = ?',
-      whereArgs: [surah, ayah],
-      orderBy: 'word ASC',
+    // Ensure columns exist or sanitize input (basic check)
+    // In a real app we might validate against a known list of columns
+    final validLangs = [
+      'bn',
+      'in',
+      'en',
+      'ur',
+      'tr',
+      'ta',
+      'sd',
+      'ru',
+      'fa',
+      'ml',
+      'inh',
+      'hi',
+      'de',
+      'fr',
+      'dv',
+      'zh',
+    ];
+    final validTrans = ['en_trans']; // Add more if available
+
+    final langCol = validLangs.contains(language) ? language : 'en';
+    final transCol = validTrans.contains(transliteration)
+        ? transliteration
+        : 'en_trans';
+
+    // JOIN corpus to get the actual Arabic word text
+    final results = await db.rawQuery(
+      '''
+      SELECT 
+        w.word, 
+        COALESCE(c.ar1,'') || COALESCE(c.ar2,'') || COALESCE(c.ar3,'') || COALESCE(c.ar4,'') || COALESCE(c.ar5,'') as arabic,
+        w.$langCol as translation, 
+        w.$transCol as transliteration
+      FROM allwords w
+      JOIN corpus c 
+        ON w.sura = c.surah 
+        AND w.ayah = c.ayah 
+        AND w.word = c.word
+      WHERE w.sura = ? AND w.ayah = ?
+      ORDER BY w.word ASC
+    ''',
+      [surah, ayah],
     );
 
     return results
         .map(
           (row) => {
             'word': row['word'],
-            'arabic': row['ar'],
-            'translation': row['tr'],
+            'arabic': row['arabic'],
+            'translation': row['translation'],
+            'transliteration': row['transliteration'],
           },
         )
         .toList();
   }
 
   Future<Map<int, List<Map<String, dynamic>>>> getWordByWordForSurah(
-    int surah,
-  ) async {
+    int surah, {
+    String language = 'en',
+    String transliteration = 'en_trans',
+  }) async {
     final db = await quranDatabase;
 
-    final results = await db.query(
-      'kata_quran',
-      where: 'sura = ?',
-      whereArgs: [surah],
-      orderBy: 'aya ASC, word ASC',
+    final validLangs = [
+      'bn',
+      'in',
+      'en',
+      'ur',
+      'tr',
+      'ta',
+      'sd',
+      'ru',
+      'fa',
+      'ml',
+      'inh',
+      'hi',
+      'de',
+      'fr',
+      'dv',
+      'zh',
+    ];
+    final validTrans = ['en_trans'];
+
+    final langCol = validLangs.contains(language) ? language : 'en';
+    final transCol = validTrans.contains(transliteration)
+        ? transliteration
+        : 'en_trans';
+
+    // Use JOIN to get Arabic text from corpus table.
+    // corpus splits words into morphological parts (ar1..ar5).
+    // We concatenate them with COALESCE to build the full word.
+    final results = await db.rawQuery(
+      '''
+      SELECT 
+        w.ayah, 
+        w.word, 
+        COALESCE(c.ar1,'') || COALESCE(c.ar2,'') || COALESCE(c.ar3,'') || COALESCE(c.ar4,'') || COALESCE(c.ar5,'') as arabic,
+        w.$langCol as translation, 
+        w.$transCol as transliteration
+      FROM allwords w
+      JOIN corpus c 
+        ON w.sura = c.surah 
+        AND w.ayah = c.ayah 
+        AND w.word = c.word
+      WHERE w.sura = ?
+      ORDER BY w.ayah ASC, w.word ASC
+    ''',
+      [surah],
     );
 
     Map<int, List<Map<String, dynamic>>> byAyah = {};
     for (var row in results) {
-      int aya = row['aya'] as int;
+      int aya = row['ayah'] as int;
       if (!byAyah.containsKey(aya)) byAyah[aya] = [];
+
       byAyah[aya]!.add({
         'word': row['word'],
-        'arabic': row['ar'],
-        'translation': row['tr'],
+        'arabic': row['arabic'], // The exact Arabic text from DB
+        'translation': row['translation'],
+        'transliteration': row['transliteration'],
       });
     }
     return byAyah;
@@ -576,5 +693,27 @@ class DatabaseService {
       print('Error searching tafseer keywords: $e');
       return [];
     }
+  }
+
+  /// Get chapter information and virtues
+  Future<Map<String, dynamic>?> getChapterInfo(int chapterNo) async {
+    final db = await quranDatabase;
+    final results = await db.query(
+      'chapter_information',
+      where: 'chapter_no = ?',
+      whereArgs: [chapterNo],
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  /// Get juz information and learning points
+  Future<Map<String, dynamic>?> getJuzInfo(int juzNo) async {
+    final db = await quranDatabase;
+    final results = await db.query(
+      'juz_information',
+      where: 'juz_no = ?',
+      whereArgs: [juzNo],
+    );
+    return results.isNotEmpty ? results.first : null;
   }
 }

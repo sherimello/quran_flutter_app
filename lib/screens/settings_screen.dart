@@ -163,6 +163,107 @@ class SettingsScreen extends StatelessWidget {
                   settings.setShowWordByWord(value);
                 },
               ),
+              if (settings.showWordByWord)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 0,
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('WBW Language'),
+                        trailing: DropdownButton<String>(
+                          value: settings.wordByWordLanguage,
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              settings.setWordByWordLanguage(value);
+                            }
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'en',
+                              child: Text('English'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'bn',
+                              child: Text('Bengali'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'in',
+                              child: Text('Indonesian'),
+                            ),
+                            DropdownMenuItem(value: 'ur', child: Text('Urdu')),
+                            DropdownMenuItem(value: 'hi', child: Text('Hindi')),
+                            DropdownMenuItem(
+                              value: 'tr',
+                              child: Text('Turkish'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ru',
+                              child: Text('Russian'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'fr',
+                              child: Text('French'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'de',
+                              child: Text('German'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'zh',
+                              child: Text('Chinese'),
+                            ),
+                            DropdownMenuItem(value: 'ta', child: Text('Tamil')),
+                            DropdownMenuItem(
+                              value: 'ml',
+                              child: Text('Malayalam'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'fa',
+                              child: Text('Persian'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (settings.wordByWordLanguage == 'en') ...[
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('WBW Transliteration'),
+                          trailing: DropdownButton<String>(
+                            value: settings.wordByWordTransliteration,
+                            onChanged: (String? value) {
+                              if (value != null) {
+                                settings.setWordByWordTransliteration(value);
+                              }
+                            },
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'en_trans',
+                                child: Text('English'),
+                              ),
+                              // Add more if db has them
+                            ],
+                          ),
+                        ),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Show WBW Transliteration'),
+                          subtitle: const Text(
+                            'Display English transliteration in Word-by-Word',
+                          ),
+                          value: settings.showWbwTransliteration,
+                          activeColor: Colors.orange,
+                          onChanged: (bool value) {
+                            settings.setShowWbwTransliteration(value);
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               SwitchListTile(
                 title: const Text('Tajweed Coloring'),
                 subtitle: const Text('Highlight rules (Ikhfaa, Idghaam, etc.)'),

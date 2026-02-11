@@ -158,6 +158,13 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         title: Text(
                           'Surah ${bookmark['surah_number']} : Ayah ${bookmark['ayah_number']}',
                         ),
+                        trailing: Text(
+                          '${bookmark['surah_number']}',
+                          style: const TextStyle(
+                            fontFamily: 'surahname',
+                            fontSize: 24,
+                          ),
+                        ),
                         subtitle: Text(
                           'Saved on ${bookmark['updated_at'].toString().split('T')[0]}',
                         ),

@@ -106,6 +106,12 @@ flutter:
     - family: hafs
       fonts:
         - asset: assets/fonts/hafs.ttf
+    - family: surahname
+      fonts:
+        - asset: assets/fonts/surah-name-v4.ttf
+    - family: besmallah
+      fonts:
+        - asset: assets/fonts/110_Besmellah_[Takmob.Net].TTF
   # fonts:
   #   - family: Schyler
   #     fonts:

@@ -11,6 +11,7 @@ class SettingsProvider with ChangeNotifier {
   String _translation = 'sahih'; // 'sahih' or 'jalalayn'
   String _pronunciation = 'latin_english'; // 'latin', 'latin_english', 'none'
   bool _showWordByWord = false;
+  bool _showWbwTransliteration = true;
 
   ThemeMode get themeMode => _themeMode;
   double get fontSize => _fontSize;
@@ -19,6 +20,7 @@ class SettingsProvider with ChangeNotifier {
   String get translation => _translation;
   String get pronunciation => _pronunciation;
   bool get showWordByWord => _showWordByWord;
+  bool get showWbwTransliteration => _showWbwTransliteration;
 
   SettingsProvider() {
     _loadSettings();
@@ -73,6 +75,41 @@ class SettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setShowWbwTransliteration(bool value) async {
+    _showWbwTransliteration = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_wbw_transliteration', value);
+    notifyListeners();
+  }
+
+  // Word By Word Settings
+  String _wordByWordLanguage = 'en'; // e.g. 'bn', 'en', 'ur'
+  String _wordByWordTransliteration = 'en_trans';
+
+  String get wordByWordLanguage => _wordByWordLanguage;
+  String get wordByWordTransliteration => _wordByWordTransliteration;
+
+  Future<void> setWordByWordLanguage(String lang) async {
+    _wordByWordLanguage = lang;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('wbw_language', lang);
+
+    // If language is not English, turn off transliteration
+    if (lang != 'en') {
+      _showWbwTransliteration = false;
+      await prefs.setBool('show_wbw_transliteration', false);
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> setWordByWordTransliteration(String trans) async {
+    _wordByWordTransliteration = trans;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('wbw_transliteration', trans);
+    notifyListeners();
+  }
+
   // Tajweed Settings
   bool _enableTajweed = false;
   bool get enableTajweed => _enableTajweed;
@@ -95,7 +132,11 @@ class SettingsProvider with ChangeNotifier {
     _translation = prefs.getString('translation') ?? 'sahih';
     _pronunciation = prefs.getString('pronunciation') ?? 'latin_english';
     _showWordByWord = prefs.getBool('show_word_by_word') ?? false;
+    _wordByWordLanguage = prefs.getString('wbw_language') ?? 'en';
+    _wordByWordTransliteration =
+        prefs.getString('wbw_transliteration') ?? 'en_trans';
     _enableTajweed = prefs.getBool('enable_tajweed') ?? false;
+    _showWbwTransliteration = prefs.getBool('show_wbw_transliteration') ?? true;
     notifyListeners();
   }
 }
