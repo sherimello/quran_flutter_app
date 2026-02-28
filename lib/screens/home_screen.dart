@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:provider/provider.dart';
 import '../services/widget_service.dart';
 
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/database_service.dart';
 
 import '../services/supabase_service.dart';
+import '../providers/settings_provider.dart';
 import '../data/juz_data.dart';
 import 'auth_screen.dart';
 import 'bookmarks_screen.dart';
@@ -32,6 +35,10 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isSearching = false;
   final FocusNode _searchFocusNode = FocusNode();
 
+  List<Map<String, dynamic>> _matchingVerses = [];
+  bool _isSearchingVerses = false;
+  Timer? _searchDebounce;
+
   late TabController _tabController;
 
   @override
@@ -53,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen>
     _searchController.dispose();
     _tabController.dispose();
     _searchFocusNode.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -68,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text.toLowerCase().trim();
     setState(() {
       _filteredSurahs = _allSurahs.where((surah) {
         final name = surah['name']?.toLowerCase() ?? '';
@@ -83,6 +91,78 @@ class _HomeScreenState extends State<HomeScreen>
             number.contains(query);
       }).toList();
     });
+
+    _searchDebounce?.cancel();
+    if (query.length >= 2) {
+      _searchDebounce = Timer(const Duration(milliseconds: 600), () {
+        _performVerseSearch(query);
+      });
+    } else {
+      setState(() {
+        _matchingVerses = [];
+      });
+    }
+  }
+
+  Future<void> _performVerseSearch(String query) async {
+    final regExp = RegExp(r'^(\d+):(\d+)$');
+    if (regExp.hasMatch(query)) {
+      final match = regExp.firstMatch(query);
+      final surahNum = int.parse(match!.group(1)!);
+      final ayahNum = int.parse(match.group(2)!);
+
+      // Validate against actual ranges
+      final surah = _allSurahs.firstWhere(
+        (s) => s['number'] == surahNum,
+        orElse: () => {},
+      );
+
+      if (surah.isNotEmpty) {
+        final maxAyahs = surah['numberOfAyahs'] as int;
+        if (ayahNum > 0 && ayahNum <= maxAyahs) {
+          if (mounted) {
+            setState(() {
+              _matchingVerses = [
+                {
+                  'surah': surahNum,
+                  'ayah': ayahNum,
+                  'text': 'Go to Verse $surahNum:$ayahNum',
+                  'isDirect': true,
+                },
+              ];
+            });
+          }
+          return;
+        }
+      }
+
+      // If invalid range or surah not found
+      if (mounted) {
+        setState(() {
+          _matchingVerses = [
+            {
+              'surah': surahNum,
+              'ayah': ayahNum,
+              'text': 'Reference not found in Quran',
+              'isDirect': false,
+              'invalid': true,
+            },
+          ];
+        });
+      }
+      return;
+    }
+
+    if (query.length < 3) return;
+
+    if (mounted) setState(() => _isSearchingVerses = true);
+    final results = await DatabaseService().searchVersesByLatin(query);
+    if (mounted) {
+      setState(() {
+        _matchingVerses = results;
+        _isSearchingVerses = false;
+      });
+    }
   }
 
   @override
@@ -199,18 +279,16 @@ class _HomeScreenState extends State<HomeScreen>
               child: const Icon(CupertinoIcons.search),
             ),
             const SizedBox(width: 9),
-            if (SupabaseService().currentUser != null) ...[
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BookmarksScreen()),
-                  );
-                },
-                child: const Icon(CupertinoIcons.bookmark),
-              ),
-              const SizedBox(width: 9),
-            ],
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BookmarksScreen()),
+                );
+              },
+              child: const Icon(CupertinoIcons.bookmark),
+            ),
+            const SizedBox(width: 9),
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -264,6 +342,57 @@ class _HomeScreenState extends State<HomeScreen>
           _buildJuzList(),
         ],
       ),
+      floatingActionButton: Consumer<SettingsProvider>(
+        builder: (context, settings, child) {
+          final hasLastRead = settings.wasLastReadJuz
+              ? (settings.lastReadJuz != null &&
+                    settings.lastReadJuzAyah != null)
+              : (settings.lastReadSurah != null &&
+                    settings.lastReadAyah != null);
+
+          if (!hasLastRead || _isSearching) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            onPressed: () async {
+              if (settings.wasLastReadJuz) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => JuzDetailScreen(
+                      juzNumber: settings.lastReadJuz!,
+                      initialAyahIndex: settings.lastReadJuzAyah!,
+                    ),
+                  ),
+                );
+              } else {
+                final surahInfo = await DatabaseService().getSurahByNumber(
+                  settings.lastReadSurah!,
+                );
+                if (surahInfo != null && mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SurahDetailScreen(
+                        surah: surahInfo,
+                        initialAyah: settings.lastReadAyah!,
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(CupertinoIcons.hourglass_tophalf_fill),
+            label: Text(
+              settings.wasLastReadJuz ? 'Last Read' : 'Last Read',
+              // ? 'Last Read: Juz ${settings.lastReadJuz}'
+              // : 'Last Read: Surah ${settings.lastReadSurah}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+          );
+        },
+      ),
     );
   }
 
@@ -272,64 +401,186 @@ class _HomeScreenState extends State<HomeScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_filteredSurahs.isEmpty) {
-      return const Center(child: Text('No Surahs found.'));
+    if (_filteredSurahs.isEmpty &&
+        _matchingVerses.isEmpty &&
+        !_isSearchingVerses) {
+      if (_searchController.text.isNotEmpty) {
+        return const Center(child: Text('No results found.'));
+      }
     }
 
-    return ListView.builder(
-      itemCount: _filteredSurahs.length,
+    return ListView(
       padding: const EdgeInsets.all(12),
-      itemBuilder: (context, index) {
-        final surah = _filteredSurahs[index];
-        return Card(
-          elevation: 0,
-          color: Colors.transparent,
-          margin: const EdgeInsets.symmetric(vertical: 0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 11),
-            leading: Container(
-              width: 35,
-              height: 35,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '${surah['number']}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
+      children: [
+        if (_filteredSurahs.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            child: Text(
+              'SURAH RESULTS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                letterSpacing: 1.2,
               ),
             ),
-            title: Text(
-              surah['englishName'] ?? '',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: Text(
-              '${surah['englishNameTranslation']} • ${surah['numberOfAyahs']} Verses',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            trailing: Text(
-              '${surah['number']}',
-              style: const TextStyle(fontFamily: 'surahname', fontSize: 32),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SurahDetailScreen(surah: surah),
-                ),
-              );
-            },
           ),
-        );
-      },
+          ..._filteredSurahs.map((surah) => _buildSurahTile(surah)),
+        ],
+        if (_isSearchingVerses)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CupertinoActivityIndicator(),
+            ),
+          ),
+        if (_matchingVerses.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            child: Text(
+              'VERSE RESULTS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          ..._matchingVerses.map((verse) => _buildVerseTile(verse)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSurahTile(Map<String, dynamic> surah) {
+    return Card(
+      elevation: 0,
+      color: Colors.transparent,
+      margin: const EdgeInsets.symmetric(vertical: 0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 11),
+        leading: Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '${surah['number']}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+        title: Text(
+          surah['englishName'] ?? '',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Text(
+          '${surah['englishNameTranslation']} • ${surah['numberOfAyahs']} Verses',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+        trailing: Text(
+          '${surah['number']}',
+          style: const TextStyle(fontFamily: 'surahname', fontSize: 32),
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SurahDetailScreen(surah: surah),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildVerseTile(Map<String, dynamic> verse) {
+    final surahNum = verse['surah'];
+    final ayahNum = verse['ayah'];
+    final isDirect = verse['isDirect'] ?? false;
+    final isInvalid = verse['invalid'] ?? false;
+
+    return Card(
+      elevation: 0,
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 11),
+        leading: Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(
+            color: isInvalid
+                ? Colors.red.withOpacity(0.1)
+                : isDirect
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Theme.of(context).colorScheme.tertiaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            isInvalid
+                ? CupertinoIcons.exclamationmark_circle
+                : isDirect
+                ? CupertinoIcons.arrow_right_circle
+                : CupertinoIcons.text_quote,
+            size: 18,
+            color: isInvalid
+                ? Colors.red
+                : isDirect
+                ? Theme.of(context).colorScheme.onPrimaryContainer
+                : Theme.of(context).colorScheme.onTertiaryContainer,
+          ),
+        ),
+        title: Text(
+          isInvalid
+              ? 'Reference not found'
+              : isDirect
+              ? 'Jump to Verse $surahNum:$ayahNum'
+              : '$surahNum:$ayahNum',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: isInvalid ? Colors.red : null,
+          ),
+        ),
+        subtitle: Text(
+          isInvalid
+              ? 'Verse $surahNum:$ayahNum does not exist'
+              : (verse['text'] ?? ''),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: isInvalid ? Colors.red.withOpacity(0.7) : Colors.grey[600],
+          ),
+        ),
+        onTap: isInvalid
+            ? null
+            : () async {
+                final surahInfo = await DatabaseService().getSurahByNumber(
+                  surahNum,
+                );
+                if (surahInfo != null && mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SurahDetailScreen(
+                        surah: surahInfo,
+                        initialAyah: ayahNum,
+                      ),
+                    ),
+                  );
+                }
+              },
+      ),
     );
   }
 

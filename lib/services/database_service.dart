@@ -37,9 +37,9 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'quran_app.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
-        // Create Bookmarks table
+        // Create Bookmarks table with pending_sync support
         await db.execute('''
           CREATE TABLE IF NOT EXISTS bookmarks(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +48,8 @@ class DatabaseService {
             surah_number INTEGER,
             ayah_number INTEGER,
             user_id TEXT,
-            updated_at TEXT
+            updated_at TEXT,
+            pending_sync INTEGER NOT NULL DEFAULT 0
           )
         ''');
       },
@@ -57,6 +58,16 @@ class DatabaseService {
           // Migration: Remove old surahs and ayahs tables
           await db.execute('DROP TABLE IF EXISTS surahs');
           await db.execute('DROP TABLE IF EXISTS ayahs');
+        }
+        if (oldVersion < 5) {
+          // Migration: Add pending_sync column for offline support
+          try {
+            await db.execute(
+              'ALTER TABLE bookmarks ADD COLUMN pending_sync INTEGER NOT NULL DEFAULT 0',
+            );
+          } catch (_) {
+            // Column may already exist
+          }
         }
       },
     );
@@ -582,6 +593,17 @@ class DatabaseService {
     );
   }
 
+  /// Insert a bookmark and return its local ID (used by saveBookmark to later mark it synced)
+  Future<int?> insertBookmarkReturnId(Map<String, dynamic> bookmark) async {
+    final db = await database;
+    final id = await db.insert(
+      'bookmarks',
+      bookmark,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return id;
+  }
+
   Future<void> deleteBookmarkLocally(int id) async {
     final db = await database;
     await db.delete('bookmarks', where: 'id = ?', whereArgs: [id]);
@@ -601,9 +623,42 @@ class DatabaseService {
     return await db.query('bookmarks', orderBy: 'updated_at DESC');
   }
 
-  Future<void> clearLocalBookmarks() async {
+  Future<void> clearLocalBookmarks({String? userId}) async {
     final db = await database;
-    await db.delete('bookmarks');
+    if (userId != null) {
+      // Only clear bookmarks for this specific user
+      await db.delete('bookmarks', where: 'user_id = ?', whereArgs: [userId]);
+    } else {
+      await db.delete('bookmarks');
+    }
+  }
+
+  /// Get all bookmarks that need to be pushed to the cloud
+  Future<List<Map<String, dynamic>>> getUnsyncedBookmarks() async {
+    final db = await database;
+    return await db.query('bookmarks', where: 'pending_sync = 1');
+  }
+
+  /// Mark a locally saved bookmark as synced with the cloud
+  Future<void> markBookmarkSynced(int localId, int remoteId) async {
+    final db = await database;
+    await db.update(
+      'bookmarks',
+      {'remote_id': remoteId, 'pending_sync': 0},
+      where: 'id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  /// Clear only synced (pending_sync = 0) bookmarks for a given user.
+  /// Used before re-pulling from the cloud to avoid duplicates.
+  Future<void> clearSyncedBookmarksForUser(String userId) async {
+    final db = await database;
+    await db.delete(
+      'bookmarks',
+      where: 'user_id = ? AND pending_sync = 0',
+      whereArgs: [userId],
+    );
   }
 
   // ===== TAFSEER METHODS =====
@@ -677,43 +732,259 @@ class DatabaseService {
     }
   }
 
-  /// Search Tafseer text using SQL LIKE (fallback for keyword search)
-  Future<List<Map<String, dynamic>>> searchTafseerKeywords(String query) async {
+  /// Search English translation text using SQL LIKE (fallback for keyword search)
+  Future<List<Map<String, dynamic>>> searchEnglishKeywords(String query) async {
     try {
-      final db = await tafseerDatabase;
+      final db = await quranDatabase;
       final results = await db.query(
-        'tafseer',
-        columns: ['id', 'surah', 'ayah', 'verse_key', 'text'],
-        where: 'text LIKE ?',
-        whereArgs: ['%$query%'],
+        'terjemahan_quran',
+        columns: ['sura', 'aya', 'text'],
+        where: 'LOWER(text) LIKE ?',
+        whereArgs: ['%${query.toLowerCase()}%'],
         limit: 50,
       );
-      return results;
+
+      List<Map<String, dynamic>> mappedResults = [];
+      for (var row in results) {
+        mappedResults.add({
+          'surah': row['sura'],
+          'ayah': row['aya'],
+          'text': row['text'],
+          'verse_key': '${row['sura']}:${row['aya']}',
+        });
+      }
+      return mappedResults;
     } catch (e) {
-      print('Error searching tafseer keywords: $e');
+      print('Error searching English keywords: $e');
       return [];
+    }
+  }
+
+  List<Map<String, dynamic>>? _cachedLatinVerses;
+
+  Future<void> _loadLatinVerses() async {
+    if (_cachedLatinVerses != null) return;
+
+    final db = await quranDatabase;
+    final latinResults = await db.query(
+      'latin_quran',
+      columns: ['sura', 'aya', 'text'],
+    );
+    final latinEngResults = await db.query(
+      'latin_english_quran',
+      columns: ['sura', 'aya', 'text'],
+    );
+
+    final map = <String, Map<String, dynamic>>{};
+
+    // Process latin_quran (Indopak encoding with symbols)
+    for (var row in latinResults) {
+      final sura = row['sura'] as int;
+      final aya = row['aya'] as int;
+      final key = '$sura:$aya';
+
+      var decoded = row['text'].toString();
+      // Decodes based on indopak logic
+      decoded = decoded.replaceAll(r'$', 'a');
+      decoded = decoded.replaceAll('%', 'i');
+      decoded = decoded.replaceAll('^', 'u');
+      decoded = decoded.replaceAll('#', 's');
+      decoded = decoded.replaceAll('@', 'dh');
+      decoded = decoded.replaceAll('*', 'h');
+      decoded = decoded.replaceAll('!', 'd');
+      decoded = decoded.replaceAll('~', 'z');
+      decoded = decoded.replaceAll('&', 't');
+      decoded = decoded.replaceAll('[', 'a');
+      decoded = decoded.replaceAll(']', '');
+
+      final cleanText = decoded.replaceAll('\r\n', ' ').trim();
+
+      map[key] = {
+        'surah': sura,
+        'ayah': aya,
+        'verse_key': key,
+        'text': cleanText,
+        'searchable_text': cleanText.toLowerCase(),
+      };
+    }
+
+    // Process latin_english_quran (HTML tags)
+    for (var row in latinEngResults) {
+      final sura = row['sura'] as int;
+      final aya = row['aya'] as int;
+      final key = '$sura:$aya';
+
+      var text = row['text'].toString();
+      text = text.replaceAll(RegExp(r'<[^>]*>'), '');
+      text = text.replaceAll('\r\n', ' ').trim();
+
+      if (!map.containsKey(key)) {
+        map[key] = {
+          'surah': sura,
+          'ayah': aya,
+          'verse_key': key,
+          'text': text, // The clean text preview
+          'searchable_text': text.toLowerCase(),
+        };
+      } else {
+        map[key]!['searchable_text'] += ' ' + text.toLowerCase();
+      }
+    }
+
+    _cachedLatinVerses = map.values.toList();
+  }
+
+  /// Search verses by latin pronunciation/transliteration
+  Future<List<Map<String, dynamic>>> searchVersesByLatin(String query) async {
+    try {
+      await _loadLatinVerses();
+
+      final cleanQuery = query.toLowerCase().trim();
+      if (cleanQuery.isEmpty) return [];
+
+      final words = cleanQuery
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length > 2)
+          .toList();
+      if (words.isEmpty) {
+        words.add(cleanQuery);
+      }
+
+      final results = <Map<String, dynamic>>[];
+
+      for (final verse in _cachedLatinVerses!) {
+        final searchableText = verse['searchable_text'] as String;
+
+        double score = 0;
+
+        // Exact phrase match gives huge boost
+        if (searchableText.contains(cleanQuery)) {
+          score += 100;
+        }
+
+        // Word matches
+        int matchedWords = 0;
+        for (final w in words) {
+          if (searchableText.contains(w)) {
+            score += 10;
+            matchedWords++;
+          }
+        }
+
+        // Only include if at least one word matches
+        if (matchedWords > 0 || score > 0) {
+          // Penalize very long verses slightly so exact short verses rank higher
+          final lengthPenalty = searchableText.length * 0.01;
+          final finalScore = score - lengthPenalty;
+
+          results.add({...verse, 'score': finalScore});
+        }
+      }
+
+      // Sort descending by score
+      results.sort(
+        (a, b) => (b['score'] as double).compareTo(a['score'] as double),
+      );
+
+      // Return top 50
+      return results.take(50).toList();
+    } catch (e) {
+      print('Error searching verses by latin: $e');
+      return [];
+    }
+  }
+
+  /// Calculates a keyword match score (0.0 to 1.0) for each verse based on the query against English translation
+  Future<Map<String, double>> getKeywordScores(String query) async {
+    try {
+      final db = await quranDatabase;
+      final words = query
+          .toLowerCase()
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length > 2)
+          .toList();
+
+      if (words.isEmpty) {
+        // Fallback if only short words exist, use the entire string
+        words.add(query.toLowerCase());
+      }
+
+      final Map<String, double> scores = {};
+
+      for (final word in words) {
+        // Find verses containing this word
+        final results = await db.query(
+          'terjemahan_quran',
+          columns: ['sura', 'aya'],
+          where: 'LOWER(text) LIKE ?',
+          whereArgs: ['%$word%'],
+        );
+
+        // Add score proportional to the number of matched words
+        final wordScore = 1.0 / words.length;
+
+        for (final row in results) {
+          final sura = row['sura'] as int;
+          final aya = row['aya'] as int;
+          final key = '${sura}_$aya';
+          scores[key] = (scores[key] ?? 0.0) + wordScore;
+        }
+      }
+
+      // Bonus for exact full-phrase match
+      if (words.length > 1) {
+        final exactResults = await db.query(
+          'terjemahan_quran',
+          columns: ['sura', 'aya'],
+          where: 'LOWER(text) LIKE ?',
+          whereArgs: ['%${query.toLowerCase()}%'],
+        );
+
+        for (final row in exactResults) {
+          final sura = row['sura'] as int;
+          final aya = row['aya'] as int;
+          final key = '${sura}_$aya';
+          // Cap at 1.0
+          scores[key] = 1.0;
+        }
+      }
+
+      return scores;
+    } catch (e) {
+      print('Error getting keyword scores: $e');
+      return {};
     }
   }
 
   /// Get chapter information and virtues
   Future<Map<String, dynamic>?> getChapterInfo(int chapterNo) async {
-    final db = await quranDatabase;
-    final results = await db.query(
-      'chapter_information',
-      where: 'chapter_no = ?',
-      whereArgs: [chapterNo],
-    );
-    return results.isNotEmpty ? results.first : null;
+    try {
+      final db = await quranDatabase;
+      final results = await db.query(
+        'chapter_information',
+        where: 'chapter_no = ?',
+        whereArgs: [chapterNo],
+      );
+      return results.isNotEmpty ? results.first : null;
+    } catch (e) {
+      print('Error fetching chapter info: $e');
+      return null;
+    }
   }
 
   /// Get juz information and learning points
   Future<Map<String, dynamic>?> getJuzInfo(int juzNo) async {
-    final db = await quranDatabase;
-    final results = await db.query(
-      'juz_information',
-      where: 'juz_no = ?',
-      whereArgs: [juzNo],
-    );
-    return results.isNotEmpty ? results.first : null;
+    try {
+      final db = await quranDatabase;
+      final results = await db.query(
+        'juz_information',
+        where: 'juz_no = ?',
+        whereArgs: [juzNo],
+      );
+      return results.isNotEmpty ? results.first : null;
+    } catch (e) {
+      print('Error fetching juz info: $e');
+      return null;
+    }
   }
 }

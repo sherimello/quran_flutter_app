@@ -18,7 +18,8 @@ class _AuthScreenState extends State<AuthScreen>
   // Controllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController(); // Added for registration
+  final _confirmPasswordController =
+      TextEditingController(); // Added for registration
 
   bool _isLoading = false;
 
@@ -90,8 +91,10 @@ class _AuthScreenState extends State<AuthScreen>
         }
       }
 
-      // Navigate to Home on success (for Login)
+      // Navigate to Home on success (for Login) and sync offline bookmarks
       if (mounted) {
+        // Fire-and-forget: sync any local/guest bookmarks to cloud
+        SupabaseService().syncBookmarks().catchError((_) {});
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
@@ -126,10 +129,12 @@ class _AuthScreenState extends State<AuthScreen>
           children: [
             GestureDetector(
               onTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (builder) => const HomeScreen())
+                context,
+                MaterialPageRoute(builder: (builder) => const HomeScreen()),
               ),
-              child: const Icon(Icons.arrow_back_rounded), // Removed hardcoded white color for better theme adaptation
+              child: const Icon(
+                Icons.arrow_back_rounded,
+              ), // Removed hardcoded white color for better theme adaptation
             ),
             const SizedBox(width: 17),
             const Text('Account'),
@@ -144,7 +149,8 @@ class _AuthScreenState extends State<AuthScreen>
         ),
         automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView( // Added scroll view to prevent overflow on small screens
+      body: SingleChildScrollView(
+        // Added scroll view to prevent overflow on small screens
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -174,7 +180,8 @@ class _AuthScreenState extends State<AuthScreen>
               if (isRegistering) ...[
                 const SizedBox(height: 16),
                 TextField(
-                  controller: _confirmPasswordController, // Use separate controller
+                  controller:
+                      _confirmPasswordController, // Use separate controller
                   decoration: const InputDecoration(
                     labelText: 'Confirm Password',
                     border: OutlineInputBorder(),
@@ -192,10 +199,10 @@ class _AuthScreenState extends State<AuthScreen>
                   onPressed: _isLoading ? null : _submit,
                   child: _isLoading
                       ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2)
-                  )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : Text(isRegistering ? 'Register' : 'Login'),
                 ),
               ),

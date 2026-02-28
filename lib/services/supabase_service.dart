@@ -24,64 +24,108 @@ class SupabaseService {
     await _client.auth.signOut();
   }
 
-  // Sync bookmarks
+  /// Save a bookmark. Works for guests (local only) and logged-in users (cloud + local).
+  /// Falls back to local with pending_sync=1 if offline.
   Future<void> saveBookmark(String folderName, int surahId, int ayahId) async {
-    if (currentUser == null) return;
+    final now = DateTime.now().toIso8601String();
+    final userId = currentUser?.id; // null for guests
 
-    final bookmarkData = {
-      'user_id': currentUser!.id,
+    // Always save locally first (with pending_sync = 1 if user is logged in but may be offline)
+    // Guest bookmarks have user_id = null and pending_sync = 0 (local-only, no cloud target)
+    final localData = {
+      'remote_id': null,
       'folder_name': folderName,
-      'surah_id': surahId,
-      'ayah_id': ayahId,
-      'updated_at': DateTime.now().toIso8601String(),
+      'surah_number': surahId,
+      'ayah_number': ayahId,
+      'user_id': userId,
+      'updated_at': now,
+      'pending_sync': userId != null
+          ? 1
+          : 0, // pending if logged in (will try to sync)
     };
 
-    try {
-      // Save to Supabase
-      final response = await _client
-          .from('bookmarks')
-          .upsert(bookmarkData)
-          .select();
+    final localId = await DatabaseService().insertBookmarkReturnId(localData);
 
-      // Save to Local DB (including remote_id if possible)
-      int? remoteId;
-      if ((response as List).isNotEmpty) {
-        remoteId = response[0]['id'];
+    // If logged in, try to sync immediately to cloud
+    if (userId != null) {
+      try {
+        final response = await _client.from('bookmarks').upsert({
+          'user_id': userId,
+          'folder_name': folderName,
+          'surah_id': surahId,
+          'ayah_id': ayahId,
+          'updated_at': now,
+        }).select();
+
+        // Mark as synced and store remote_id
+        if ((response as List).isNotEmpty && localId != null) {
+          await DatabaseService().markBookmarkSynced(
+            localId,
+            response[0]['id'],
+          );
+        }
+      } catch (e) {
+        // Offline — will be synced later by syncBookmarks()
+        print('Bookmark save offline, will sync later: $e');
       }
-
-      await DatabaseService().insertBookmark({
-        'remote_id': remoteId,
-        'folder_name': folderName,
-        'surah_number': surahId,
-        'ayah_number': ayahId,
-        'user_id': currentUser!.id,
-        'updated_at': bookmarkData['updated_at'],
-      });
-    } catch (e) {
-      // Offline fallback: save only locally with null remote_id
-      await DatabaseService().insertBookmark({
-        'remote_id': null,
-        'folder_name': folderName,
-        'surah_number': surahId,
-        'ayah_number': ayahId,
-        'user_id': currentUser!.id,
-        'updated_at': bookmarkData['updated_at'],
-      });
     }
   }
 
+  /// Sync bookmarks between local DB and Supabase.
+  /// 1. Push all pending (unsynced) local bookmarks to cloud.
+  /// 2. Pull remote bookmarks and merge into local.
   Future<void> syncBookmarks() async {
     if (currentUser == null) return;
+    final userId = currentUser!.id;
+    final dbService = DatabaseService();
+
     try {
+      // Step 1: Push unsynced local bookmarks to cloud
+      final unsynced = await dbService.getUnsyncedBookmarks();
+      for (final bookmark in unsynced) {
+        // Skip if already has a remote_id (shouldn't happen, but safety check)
+        if (bookmark['remote_id'] != null) {
+          await dbService.markBookmarkSynced(
+            bookmark['id'],
+            bookmark['remote_id'],
+          );
+          continue;
+        }
+
+        try {
+          final response = await _client.from('bookmarks').upsert({
+            'user_id': userId,
+            'folder_name': bookmark['folder_name'],
+            'surah_id': bookmark['surah_number'],
+            'ayah_id': bookmark['ayah_number'],
+            'updated_at': bookmark['updated_at'],
+          }).select();
+
+          if ((response as List).isNotEmpty) {
+            await dbService.markBookmarkSynced(
+              bookmark['id'],
+              response[0]['id'],
+            );
+          }
+        } catch (e) {
+          print('Failed to push bookmark ${bookmark['id']}: $e');
+        }
+      }
+
+      // Step 2: Pull remote bookmarks and upsert locally
+      // First, assign the local guest bookmarks to this user by updating user_id
+      await _client
+          .rpc('noop')
+          .catchError((_) {}); // connectivity check – ignore errors
       final response = await _client
           .from('bookmarks')
           .select()
-          .eq('user_id', currentUser!.id);
+          .eq('user_id', userId);
 
       final List<dynamic> remoteBookmarks = response;
-      final dbService = DatabaseService();
 
-      await dbService.clearLocalBookmarks();
+      // Clear only this user's already-synced bookmarks (preserve pending ones)
+      await dbService.clearSyncedBookmarksForUser(userId);
 
       for (var rb in remoteBookmarks) {
         await dbService.insertBookmark({
@@ -91,6 +135,7 @@ class SupabaseService {
           'ayah_number': rb['ayah_id'],
           'user_id': rb['user_id'],
           'updated_at': rb['updated_at'],
+          'pending_sync': 0,
         });
       }
     } catch (e) {
@@ -99,8 +144,7 @@ class SupabaseService {
   }
 
   Future<List<String>> getFolders() async {
-    if (currentUser == null) return [];
-    // Fetch from local instead of remote
+    // Return folders for ALL users (guests included)
     final localBookmarks = await DatabaseService().getAllBookmarks();
     return localBookmarks
         .map((e) => e['folder_name'] as String)
@@ -109,11 +153,11 @@ class SupabaseService {
   }
 
   Future<void> deleteBookmark(int localId, int? remoteId) async {
-    // Delete locally
+    // Always delete locally
     await DatabaseService().deleteBookmarkLocally(localId);
 
-    // Delete remotely if remoteId exists
-    if (remoteId != null) {
+    // Delete remotely only if logged in and has a remote copy
+    if (remoteId != null && currentUser != null) {
       try {
         await _client.from('bookmarks').delete().eq('id', remoteId);
       } catch (e) {
@@ -123,26 +167,24 @@ class SupabaseService {
   }
 
   Future<void> deleteFolder(String folderName) async {
-    if (currentUser == null) return;
-
-    // Delete locally
+    // Always delete locally
     await DatabaseService().deleteFolderLocally(folderName);
 
-    // Delete remotely
-    try {
-      await _client
-          .from('bookmarks')
-          .delete()
-          .eq('user_id', currentUser!.id)
-          .eq('folder_name', folderName);
-    } catch (e) {
-      print('Remote delete failed: $e');
+    // Delete remotely only if logged in
+    if (currentUser != null) {
+      try {
+        await _client
+            .from('bookmarks')
+            .delete()
+            .eq('user_id', currentUser!.id)
+            .eq('folder_name', folderName);
+      } catch (e) {
+        print('Remote delete failed: $e');
+      }
     }
   }
 
   Future<Map<String, dynamic>> getUserStats() async {
-    if (currentUser == null) return {};
-    // Fetch from local
     final localBookmarks = await DatabaseService().getAllBookmarks();
     return {'totalBookmarks': localBookmarks.length};
   }

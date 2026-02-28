@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -9,12 +10,18 @@ import '../services/audio_service.dart';
 import '../services/supabase_service.dart';
 import '../providers/settings_provider.dart';
 import '../data/juz_data.dart';
+import '../services/tajweed_service.dart';
 import 'settings_screen.dart';
 
 class JuzDetailScreen extends StatefulWidget {
   final int juzNumber;
+  final int? initialAyahIndex;
 
-  const JuzDetailScreen({super.key, required this.juzNumber});
+  const JuzDetailScreen({
+    super.key,
+    required this.juzNumber,
+    this.initialAyahIndex,
+  });
 
   @override
   State<JuzDetailScreen> createState() => _JuzDetailScreenState();
@@ -35,6 +42,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
+  Timer? _scrollDebounce;
 
   String? _currentScript;
   String? _currentTranslation;
@@ -44,6 +52,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   String? _currentWbwTransliteration;
   bool? _currentShowWbwTransliteration;
   bool? _currentShowTafseer;
+  bool? _currentEnableTajweed;
   Map<String, dynamic>? _juzInfo;
 
   @override
@@ -59,6 +68,36 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
         });
       }
     });
+
+    // Save reading progress when scrolling stops
+    _itemPositionsListener.itemPositions.addListener(() {
+      _scrollDebounce?.cancel();
+      _scrollDebounce = Timer(const Duration(milliseconds: 500), () {
+        if (!mounted || _isLoading || _ayahs.isEmpty) return;
+
+        final positions = _itemPositionsListener.itemPositions.value;
+        if (positions.isNotEmpty) {
+          final topItem = positions
+              .where((ItemPosition position) => position.itemTrailingEdge > 0)
+              .reduce(
+                (min, position) =>
+                    position.itemLeadingEdge < min.itemLeadingEdge
+                    ? position
+                    : min,
+              );
+
+          final index = topItem.index;
+          if (index >= 0 && index < _ayahs.length) {
+            final settings = Provider.of<SettingsProvider>(
+              context,
+              listen: false,
+            );
+            settings.saveLastReadJuz(widget.juzNumber, index);
+          }
+        }
+      });
+    });
+
     _checkAudioStatus();
   }
 
@@ -74,7 +113,8 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
         _currentWbwLanguage != settings.wordByWordLanguage ||
         _currentWbwTransliteration != settings.wordByWordTransliteration ||
         _currentShowWbwTransliteration != settings.showWbwTransliteration ||
-        _currentShowTafseer != settings.showTafseer) {
+        _currentShowTafseer != settings.showTafseer ||
+        _currentEnableTajweed != settings.enableTajweed) {
       _currentScript = settings.arabicScript;
       _currentTranslation = settings.translation;
       _currentPronunciation = settings.pronunciation;
@@ -83,6 +123,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       _currentWbwTransliteration = settings.wordByWordTransliteration;
       _currentShowWbwTransliteration = settings.showWbwTransliteration;
       _currentShowTafseer = settings.showTafseer;
+      _currentEnableTajweed = settings.enableTajweed;
 
       _fetchJuzVerses();
     }
@@ -164,6 +205,16 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           _juzInfo = juzInfoResult;
           _isLoading = false;
         });
+
+        if (widget.initialAyahIndex != null &&
+            widget.initialAyahIndex! < _ayahs.length) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_itemScrollController.isAttached) {
+              _itemScrollController.jumpTo(index: widget.initialAyahIndex!);
+            }
+          });
+        }
+
         _checkAudioStatus();
       }
     } catch (e) {
@@ -550,6 +601,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _scrollDebounce?.cancel();
     super.dispose();
   }
 
@@ -804,7 +856,17 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           _addToBookmark(ayah['number'], ayah['numberInSurah']);
         }
       },
-      onTap: () => _playAyah(ayah['number'], ayah['numberInSurah']),
+      onTap: () {
+        if (_isAudioDownloaded) {
+          _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please download the audio for this Juz first'),
+            ),
+          );
+        }
+      },
       child: Card(
         semanticContainer: false,
         surfaceTintColor: Colors.transparent,
@@ -856,80 +918,108 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                         ),
                       ),
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        if (isPlaying) {
-                          _audioPlayer.stop();
-                          setState(() {
-                            _playingAyahId = null;
-                            _isAutoPlaying = false;
-                          });
-                        } else {
-                          _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
-                        }
-                      },
-                      icon: Icon(
-                        isPlaying
-                            ? CupertinoIcons.pause
-                            : CupertinoIcons.play_arrow,
-                        size: 15,
-                        color: Theme.of(context).brightness == Brightness.light
-                            ? Colors.black
-                            : Colors.white,
-                      ),
-                      label: Text(
-                        isPlaying ? "Stop" : "Play",
-                        style: TextStyle(
-                          height: 1.0,
-                          fontSize: 13,
+                    if (_isAudioDownloaded)
+                      TextButton.icon(
+                        onPressed: () {
+                          if (isPlaying) {
+                            _audioPlayer.stop();
+                            setState(() {
+                              _playingAyahId = null;
+                              _isAutoPlaying = false;
+                            });
+                          } else {
+                            _playAyah(
+                              ayah['surahNumber'],
+                              ayah['numberInSurah'],
+                            );
+                          }
+                        },
+                        icon: Icon(
+                          isPlaying
+                              ? CupertinoIcons.pause
+                              : CupertinoIcons.play_arrow,
+                          size: 15,
                           color:
                               Theme.of(context).brightness == Brightness.light
                               ? Colors.black
                               : Colors.white,
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor:
-                            Theme.of(context).brightness == Brightness.light
-                            ? Colors.black.withOpacity(0.04)
-                            : Colors.white.withOpacity(0.08),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100),
-                          side: BorderSide(
-                            width: .5,
+                        label: Text(
+                          isPlaying ? "Stop" : "Play",
+                          style: TextStyle(
+                            height: 1.0,
+                            fontSize: 13,
                             color:
                                 Theme.of(context).brightness == Brightness.light
-                                ? Colors.black.withOpacity(0.15)
-                                : Colors.white.withOpacity(0.15),
+                                ? Colors.black
+                                : Colors.white,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.light
+                              ? Colors.black.withOpacity(0.04)
+                              : Colors.white.withOpacity(0.08),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(100),
+                            side: BorderSide(
+                              width: .5,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.light
+                                  ? Colors.black.withOpacity(0.15)
+                                  : Colors.white.withOpacity(0.15),
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               const SizedBox(height: 11),
 
               // Arabic text
-              Text(
-                displayText.replaceAllMapped(
-                  RegExp(r'([\u06D6-\u06ED])'),
-                  (match) => '${match.group(0)}   \u200C   ',
-                ),
-                textAlign: TextAlign.right,
-                textDirection: TextDirection.rtl,
-                style: TextStyle(
-                  fontFamily: arabicFont,
-                  fontSize: settings.fontSize + 6,
-                  height: 1.8,
-                  wordSpacing: 0.0,
-                ),
-              ),
+              settings.enableTajweed
+                  ? RichText(
+                      textAlign: TextAlign.right,
+                      textDirection: TextDirection.rtl,
+                      text: TextSpan(
+                        children: TajweedRenderer.getTajweedSpans(
+                          displayText.replaceAllMapped(
+                            RegExp(r'([\u06D6-\u06DC])'),
+                            (match) => '   ${match.group(0)} ',
+                          ),
+                          TextStyle(
+                            fontFamily: arabicFont,
+                            fontSize: settings.fontSize + 6,
+                            height: 1.8,
+                            wordSpacing: 0,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          isIndopak: arabicFont == 'qalammajeed3',
+                        ),
+                      ),
+                    )
+                  : Text(
+                      displayText.replaceAllMapped(
+                        RegExp(r'([\u06D6-\u06DC])'),
+                        (match) => '      ${match.group(0)} ',
+                      ),
+                      textAlign: TextAlign.right,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        fontFamily: arabicFont,
+                        fontSize: settings.fontSize + 6,
+                        height: 1.8,
+                        wordSpacing: 0,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
 
               // Pronunciation
               if (settings.pronunciation != 'none' &&

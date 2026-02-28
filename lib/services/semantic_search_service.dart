@@ -54,11 +54,15 @@ class SemanticSearchService {
   Future<List<SearchResult>> search(
     String query, {
     int maxResults = 20,
-    double minSimilarity = 0.3,
+    double minSimilarity = 0.15,
   }) async {
     if (!_isLoaded) {
       await loadEmbeddings();
     }
+
+    print(
+      '[Search] Embeddings loaded: $_isLoaded (count: ${_embeddings?.length ?? 0})',
+    );
 
     // 1. Get query embedding (Semantic) OR null (Keyword fallback)
     List<double>? queryEmbedding;
@@ -66,33 +70,65 @@ class SemanticSearchService {
     // Try BERT first
     if (_bertService.isLoaded || await _bertService.initialize()) {
       queryEmbedding = await _bertService.embed(query);
+      print(
+        '[Search] BERT embedding generated: ${queryEmbedding?.length ?? 'null'} dims',
+      );
+    } else {
+      print('[Search] BERT failed to load, using keyword fallback');
     }
 
     if (queryEmbedding != null) {
-      print('Using BERT semantic search for: "$query"');
-      return _performSemanticSearch(queryEmbedding, maxResults, minSimilarity);
+      print('[Search] Using Hybrid (BERT + Keyword) for: "$query"');
+      return _performHybridSearch(
+        query,
+        queryEmbedding,
+        maxResults,
+        minSimilarity,
+      );
     } else {
-      print('Using keyword search (fallback) for: "$query"');
+      print(
+        '[Search] Using pure keyword search (BERT unavailable) for: "$query"',
+      );
       return _performKeywordSearchDb(query, maxResults);
     }
   }
 
-  /// Perform semantic search using in-memory embeddings
-  Future<List<SearchResult>> _performSemanticSearch(
+  /// Perform hybrid search using in-memory embeddings, boosted by exact keyword matches
+  Future<List<SearchResult>> _performHybridSearch(
+    String query,
     List<double> queryEmbedding,
     int maxResults,
     double minSimilarity,
   ) async {
     if (_embeddings == null || _embeddings!.isEmpty) return [];
 
-    // 1. Compute scores
+    // 0. Get mathematically calculated keyword scores (0.0 - 1.0)
+    final keywordScores = await DatabaseService().getKeywordScores(query);
+    print('[Hybrid] Keyword scores found for ${keywordScores.length} verses');
+
+    // 1. Compute combined scores
     final scored = <_ScoredEntry>[];
+    double maxSemanticSeen = 0.0;
     for (final entry in _embeddings!) {
-      final score = entry.cosineSimilarity(queryEmbedding);
-      if (score >= minSimilarity) {
-        scored.add(_ScoredEntry(entry, score));
+      double semanticScore = entry.cosineSimilarity(queryEmbedding);
+      // Ensure semantic score is not negative (cosine similarity range [-1, 1])
+      semanticScore = semanticScore < 0 ? 0 : semanticScore;
+      if (semanticScore > maxSemanticSeen) maxSemanticSeen = semanticScore;
+
+      double keywordScore =
+          keywordScores['${entry.surah}_${entry.ayah}'] ?? 0.0;
+
+      // Additive: semantic is base, keyword is a boost
+      double totalScore = semanticScore + keywordScore;
+
+      if (totalScore >= minSimilarity) {
+        scored.add(_ScoredEntry(entry, totalScore));
       }
     }
+    print('[Hybrid] Max semantic score seen: $maxSemanticSeen');
+    print(
+      '[Hybrid] Scored entries above threshold ($minSimilarity): ${scored.length}',
+    );
 
     // 2. Sort top N
     scored.sort((a, b) => b.score.compareTo(a.score));
@@ -128,25 +164,46 @@ class SemanticSearchService {
     return results;
   }
 
-  /// Perform keyword search using SQLite fallback
+  /// Perform keyword search using SQLite fallback — searches word by word
   Future<List<SearchResult>> _performKeywordSearchDb(
     String query,
     int maxResults,
   ) async {
-    final results = await DatabaseService().searchTafseerKeywords(query);
+    // Split into words and search for each; merge results by verse key
+    final words = query
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.length > 2)
+        .toList();
 
-    return results
+    final searchTerms = words.isEmpty ? [query] : words;
+    final seen = <String, Map<String, dynamic>>{};
+
+    for (final word in searchTerms) {
+      final results = await DatabaseService().searchEnglishKeywords(word);
+      for (final r in results) {
+        final key = '${r['surah']}_${r['ayah']}';
+        seen.putIfAbsent(key, () => r);
+      }
+    }
+
+    print(
+      '[Keyword Fallback] Found ${seen.length} unique verses for: "$query"',
+    );
+
+    return seen.values
+        .take(maxResults)
         .map(
           (data) => SearchResult(
             entry: TafseerEmbedding(
-              id: data['id'] as int,
+              id: -1,
               surah: data['surah'] as int,
               ayah: data['ayah'] as int,
               verseKey: data['verse_key'] as String,
               text: data['text'] as String,
               embedding: [],
             ),
-            similarity: 1.0, // Exact match
+            similarity: 1.0,
           ),
         )
         .toList();

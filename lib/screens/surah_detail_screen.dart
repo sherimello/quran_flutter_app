@@ -4,6 +4,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'dart:async';
+
 import '../services/database_service.dart';
 import '../services/audio_service.dart';
 import '../services/supabase_service.dart';
@@ -35,6 +37,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
+  Timer? _scrollDebounce;
 
   // Track settings to detect changes
   String? _currentScript;
@@ -61,6 +64,42 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           _playingAyahId = null;
         });
       }
+    });
+
+    // Save reading progress when scrolling stops
+    _itemPositionsListener.itemPositions.addListener(() {
+      _scrollDebounce?.cancel();
+      _scrollDebounce = Timer(const Duration(milliseconds: 500), () {
+        if (!mounted || _isLoading || _ayahs.isEmpty) return;
+
+        final positions = _itemPositionsListener.itemPositions.value;
+        if (positions.isNotEmpty) {
+          // Find the first fully or partially visible item starting from the top
+          final topItem = positions
+              .where((ItemPosition position) => position.itemTrailingEdge > 0)
+              .reduce(
+                (min, position) =>
+                    position.itemLeadingEdge < min.itemLeadingEdge
+                    ? position
+                    : min,
+              );
+
+          // Index 0 is often the Bismillah or Surah header depending on the Surah
+          // Get the ayah number from the actual list data
+          final index = topItem.index;
+          if (index >= 0 && index < _ayahs.length) {
+            final ayahData = _ayahs[index];
+            // Field is 'numberInSurah', not 'ayah'
+            final ayahNumber = (ayahData['numberInSurah'] as int?) ?? 1;
+
+            final settings = Provider.of<SettingsProvider>(
+              context,
+              listen: false,
+            );
+            settings.saveLastReadSurah(widget.surah['number'], ayahNumber);
+          }
+        }
+      });
     });
 
     // Check audio status
@@ -582,6 +621,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _scrollDebounce?.cancel();
     super.dispose();
   }
 
@@ -670,11 +710,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ),
                 ),
               const SizedBox(width: 9),
-              GestureDetector(
-                onTap: _showChapterInfo,
-                child: const Icon(CupertinoIcons.info_circle),
-              ),
-              const SizedBox(width: 9),
+              if (_chapterInfo != null) ...[
+                GestureDetector(
+                  onTap: _showChapterInfo,
+                  child: const Icon(CupertinoIcons.info_circle),
+                ),
+                const SizedBox(width: 9),
+              ],
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -693,66 +735,60 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               ? const Center(child: CircularProgressIndicator())
               : Column(
                   children: [
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: 16,
-                          bottom: 16,
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'surah${widget.surah['number'].toString().length == 3
-                                      ? widget.surah['number'].toString()
-                                      : widget.surah['number'].toString().length == 2
-                                      ? "0${widget.surah['number']}"
-                                      : "00${widget.surah['number']}"}',
-                                  style: TextStyle(
-                                    fontFamily: 'surahname',
-                                    fontSize: size.width * .1,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16, bottom: 16),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'surah${widget.surah['number'].toString().length == 3
+                                    ? widget.surah['number'].toString()
+                                    : widget.surah['number'].toString().length == 2
+                                    ? "0${widget.surah['number']}"
+                                    : "00${widget.surah['number']}"}',
+                                style: TextStyle(
+                                  fontFamily: 'surahname',
+                                  fontSize: size.width * .1,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    widget.surah['surahName'] ??
+                                        'Surah ${widget.surah['name']}',
+                                    style: TextStyle(
+                                      fontSize: size.width * .045,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      height: 0,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      widget.surah['surahName'] ??
-                                          'Surah ${widget.surah['name']}',
-                                      style: TextStyle(
-                                        fontSize: size.width * .045,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
-                                        height: 0,
-                                      ),
-                                      textAlign: TextAlign.center,
+                                  Text(
+                                    '${_ayahs.isNotEmpty ? (_ayahs[0]['totalVerses'] ?? 0) : 0} Verses',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withAlpha(95),
+                                      fontWeight: FontWeight.w900,
+                                      height: 0,
                                     ),
-                                    Text(
-                                      '${_ayahs[0]['totalVerses'] ?? 0} Verses',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withAlpha(95),
-                                        fontWeight: FontWeight.w900,
-                                        height: 0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
+                    ),
                     // Basmala Header
                     if (showBasmalaHeader)
                       Text(
@@ -791,28 +827,16 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           var size = MediaQuery.of(context).size;
 
                           return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: InkWell(
                               splashColor: Colors.transparent,
                               highlightColor: Colors.transparent,
                               borderRadius: BorderRadius.circular(45),
                               onLongPress: () {
-                                if (SupabaseService().currentUser == null) {
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Login to bookmark'),
-                                    ),
-                                  );
-                                } else {
-                                  _addToBookmark(
-                                    widget.surah['number'],
-                                    ayah['numberInSurah'],
-                                  );
-                                }
+                                _addToBookmark(
+                                  widget.surah['number'],
+                                  ayah['numberInSurah'],
+                                );
                               },
                               onTap: () => _playAyah(ayah['numberInSurah']),
                               child: Card(
@@ -820,12 +844,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                 surfaceTintColor: Colors
                                     .transparent, // Removes M3 elevation tint
                                 color: isPlaying
-                                    ? Theme.of(context).colorScheme.primary
-                                          .withOpacity(0.12)
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.12)
                                     : Theme.of(context).brightness ==
                                           Brightness.light
-                                    ? Theme.of(context).colorScheme.primary
-                                          .withOpacity(0.07)
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withOpacity(0.07)
                                     : Colors.white.withAlpha(15),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
@@ -846,14 +872,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                           Container(
                                             width: size.width * 0.079,
                                             height: size.width * 0.071,
-                                            padding: const EdgeInsets.all(
-                                              4,
-                                            ),
+                                            padding: const EdgeInsets.all(4),
                                             decoration: BoxDecoration(
                                               borderRadius:
-                                                  BorderRadius.circular(
-                                                    100,
-                                                  ),
+                                                  BorderRadius.circular(100),
                                               color:
                                                   Theme.of(
                                                         context,
@@ -863,9 +885,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                         .colorScheme
                                                         .primary
                                                         .withOpacity(0.1)
-                                                  : Colors.white.withAlpha(
-                                                      15,
-                                                    ),
+                                                  : Colors.white.withAlpha(15),
                                               border: Border.all(
                                                 width: 1,
                                                 color: Theme.of(context)
@@ -880,8 +900,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   height: 0,
-                                                  fontWeight:
-                                                      FontWeight.bold,
+                                                  fontWeight: FontWeight.bold,
                                                   color: Theme.of(context)
                                                       .colorScheme
                                                       .onPrimaryContainer,
@@ -901,8 +920,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                               icon: Icon(
                                                 isPlaying
                                                     ? CupertinoIcons.pause
-                                                    : CupertinoIcons
-                                                          .play_arrow,
+                                                    : CupertinoIcons.play_arrow,
                                                 size: 15,
                                                 color:
                                                     Theme.of(
@@ -932,12 +950,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                           context,
                                                         ).brightness ==
                                                         Brightness.light
-                                                    ? Colors.black
-                                                          .withOpacity(0.04)
-                                                    : Colors.white
-                                                          .withOpacity(
-                                                            0.08,
-                                                          ),
+                                                    ? Colors.black.withOpacity(
+                                                        0.04,
+                                                      )
+                                                    : Colors.white.withOpacity(
+                                                        0.08,
+                                                      ),
                                                 tapTargetSize:
                                                     MaterialTapTargetSize
                                                         .shrinkWrap,
@@ -961,9 +979,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                             ).brightness ==
                                                             Brightness.light
                                                         ? Colors.black
-                                                              .withOpacity(
-                                                                0.15,
-                                                              )
+                                                              .withOpacity(0.15)
                                                         : Colors.white
                                                               .withOpacity(
                                                                 0.15,
@@ -979,8 +995,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                       settings.enableTajweed
                                           ? RichText(
                                               textAlign: TextAlign.right,
-                                              textDirection:
-                                                  TextDirection.rtl,
+                                              textDirection: TextDirection.rtl,
                                               text: TextSpan(
                                                 children: TajweedRenderer.getTajweedSpans(
                                                   displayText.replaceAllMapped(
@@ -993,8 +1008,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                   TextStyle(
                                                     fontFamily: arabicFont,
                                                     fontSize:
-                                                        settings.fontSize +
-                                                        6,
+                                                        settings.fontSize + 6,
                                                     height: 1.8,
                                                     wordSpacing: 0,
                                                     color: Theme.of(
@@ -1009,19 +1023,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             )
                                           : Text(
                                               displayText.replaceAllMapped(
-                                                RegExp(
-                                                  r'([\u06D6-\u06DC])',
-                                                ),
+                                                RegExp(r'([\u06D6-\u06DC])'),
                                                 (match) =>
                                                     '      ${match.group(0)} ',
                                               ),
                                               textAlign: TextAlign.right,
-                                              textDirection:
-                                                  TextDirection.rtl,
+                                              textDirection: TextDirection.rtl,
                                               style: TextStyle(
                                                 fontFamily: arabicFont,
-                                                fontSize:
-                                                    settings.fontSize + 6,
+                                                fontSize: settings.fontSize + 6,
                                                 height: 1.8,
                                                 wordSpacing: 0,
                                                 color: Theme.of(
@@ -1031,10 +1041,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             ),
 
                                       // TRANSLITERATION
-                                      if (settings.pronunciation !=
-                                              'none' &&
-                                          ayah['pronunciation'] !=
-                                              null) ...[
+                                      if (settings.pronunciation != 'none' &&
+                                          ayah['pronunciation'] != null) ...[
                                         const SizedBox(height: 8),
                                         if (settings.pronunciation ==
                                             'latin_english')
@@ -1051,9 +1059,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                           )
                                         else
                                           Text(
-                                            _decodeLatin(
-                                              ayah['pronunciation'],
-                                            ),
+                                            _decodeLatin(ayah['pronunciation']),
                                             textAlign: TextAlign.end,
                                             style: TextStyle(
                                               fontSize:
@@ -1098,16 +1104,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                           context,
                                                         ).brightness ==
                                                         Brightness.light
-                                                    ? Colors.black
-                                                          .withOpacity(0.04)
-                                                    : Colors.white
-                                                          .withOpacity(
-                                                            0.07,
-                                                          ),
+                                                    ? Colors.black.withOpacity(
+                                                        0.04,
+                                                      )
+                                                    : Colors.white.withOpacity(
+                                                        0.07,
+                                                      ),
                                                 borderRadius:
-                                                    BorderRadius.circular(
-                                                      19,
-                                                    ),
+                                                    BorderRadius.circular(19),
                                                 border: Border.all(
                                                   color:
                                                       Theme.of(
@@ -1115,13 +1119,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                           ).brightness ==
                                                           Brightness.light
                                                       ? Colors.black
-                                                            .withOpacity(
-                                                              0.08,
-                                                            )
+                                                            .withOpacity(0.08)
                                                       : Colors.white
-                                                            .withOpacity(
-                                                              0.12,
-                                                            ),
+                                                            .withOpacity(0.12),
                                                 ),
                                               ),
                                               child: Column(
@@ -1129,17 +1129,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                   Text(
                                                     word['arabic'] ?? '',
                                                     style: TextStyle(
-                                                      fontFamily:
-                                                          arabicFont,
+                                                      fontFamily: arabicFont,
                                                       fontSize:
                                                           size.width * .047,
                                                       height: 0,
                                                       fontWeight:
                                                           FontWeight.w900,
-                                                      color:
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurface,
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.onSurface,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
@@ -1150,41 +1148,32 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                       word['transliteration']
                                                           .toString()
                                                           .isNotEmpty) ...[
-                                                    const SizedBox(
-                                                      height: 2,
-                                                    ),
+                                                    const SizedBox(height: 2),
                                                     Text(
                                                       word['transliteration'],
                                                       style: TextStyle(
                                                         fontSize:
-                                                            settings
-                                                                .fontSize *
+                                                            settings.fontSize *
                                                             0.55,
-                                                        fontStyle: FontStyle
-                                                            .italic,
-                                                        color:
-                                                            Theme.of(
-                                                                  context,
-                                                                )
-                                                                .colorScheme
-                                                                .tertiary,
+                                                        fontStyle:
+                                                            FontStyle.italic,
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.tertiary,
                                                       ),
                                                     ),
                                                   ],
                                                   Text(
-                                                    word['translation'] ??
-                                                        '',
+                                                    word['translation'] ?? '',
                                                     style: TextStyle(
                                                       fontSize:
-                                                          settings
-                                                              .fontSize *
+                                                          settings.fontSize *
                                                           0.6,
                                                       fontWeight:
                                                           FontWeight.w500,
-                                                      color:
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .secondary,
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.secondary,
                                                     ),
                                                   ),
                                                 ],
@@ -1228,19 +1217,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                             });
                                           },
                                           child: Container(
-                                            padding: const EdgeInsets.all(
-                                              17,
-                                            ),
+                                            padding: const EdgeInsets.all(17),
                                             decoration: BoxDecoration(
                                               color:
                                                   Theme.of(
                                                         context,
                                                       ).brightness ==
                                                       Brightness.light
-                                                  ? Colors.black
-                                                        .withOpacity(0.04)
-                                                  : Colors.white
-                                                        .withOpacity(0.07),
+                                                  ? Colors.black.withOpacity(
+                                                      0.04,
+                                                    )
+                                                  : Colors.white.withOpacity(
+                                                      0.07,
+                                                    ),
                                               borderRadius:
                                                   BorderRadius.circular(17),
                                             ),
@@ -1252,8 +1241,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                   'Tafseer:',
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    fontWeight:
-                                                        FontWeight.bold,
+                                                    fontWeight: FontWeight.bold,
                                                     color: Theme.of(
                                                       context,
                                                     ).colorScheme.primary,
@@ -1275,17 +1263,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                         ayah['tafseerSnippet'] ??
                                                             '',
                                                         maxLines: 2,
-                                                        overflow:
-                                                            TextOverflow
-                                                                .ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                         style: TextStyle(
                                                           fontSize:
                                                               settings
                                                                   .fontSize *
                                                               0.75,
                                                           fontStyle:
-                                                              FontStyle
-                                                                  .italic,
+                                                              FontStyle.italic,
                                                         ),
                                                       ),
                                               ],

@@ -13,6 +13,13 @@ class SettingsProvider with ChangeNotifier {
   bool _showWordByWord = false;
   bool _showWbwTransliteration = true;
 
+  // Last Read Tracking
+  int? _lastReadSurah;
+  int? _lastReadAyah;
+  int? _lastReadJuz;
+  int? _lastReadJuzAyah;
+  bool _wasLastReadJuz = false;
+
   ThemeMode get themeMode => _themeMode;
   double get fontSize => _fontSize;
   bool get showTafseer => _showTafseer;
@@ -21,6 +28,12 @@ class SettingsProvider with ChangeNotifier {
   String get pronunciation => _pronunciation;
   bool get showWordByWord => _showWordByWord;
   bool get showWbwTransliteration => _showWbwTransliteration;
+
+  int? get lastReadSurah => _lastReadSurah;
+  int? get lastReadAyah => _lastReadAyah;
+  int? get lastReadJuz => _lastReadJuz;
+  int? get lastReadJuzAyah => _lastReadJuzAyah;
+  bool get wasLastReadJuz => _wasLastReadJuz;
 
   SettingsProvider() {
     _loadSettings();
@@ -121,6 +134,29 @@ class SettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Last Read Methods
+  Future<void> saveLastReadSurah(int surah, int ayah) async {
+    _lastReadSurah = surah;
+    _lastReadAyah = ayah;
+    _wasLastReadJuz = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_read_surah', surah);
+    await prefs.setInt('last_read_ayah', ayah);
+    await prefs.setBool('was_last_read_juz', false);
+    notifyListeners();
+  }
+
+  Future<void> saveLastReadJuz(int juz, int ayahIndex) async {
+    _lastReadJuz = juz;
+    _lastReadJuzAyah = ayahIndex;
+    _wasLastReadJuz = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_read_juz', juz);
+    await prefs.setInt('last_read_juz_ayah', ayahIndex);
+    await prefs.setBool('was_last_read_juz', true);
+    notifyListeners();
+  }
+
   // Load implementation override
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -137,6 +173,14 @@ class SettingsProvider with ChangeNotifier {
         prefs.getString('wbw_transliteration') ?? 'en_trans';
     _enableTajweed = prefs.getBool('enable_tajweed') ?? false;
     _showWbwTransliteration = prefs.getBool('show_wbw_transliteration') ?? true;
+
+    // Load Last Read data
+    _lastReadSurah = prefs.getInt('last_read_surah');
+    _lastReadAyah = prefs.getInt('last_read_ayah');
+    _lastReadJuz = prefs.getInt('last_read_juz');
+    _lastReadJuzAyah = prefs.getInt('last_read_juz_ayah');
+    _wasLastReadJuz = prefs.getBool('was_last_read_juz') ?? false;
+
     notifyListeners();
   }
 }
