@@ -84,7 +84,7 @@ flutter:
   assets:
     - assets/images/
     - assets/db/quran_tafsir.db
-    - assets/db/Quran.db
+    - assets/db/
     - assets/embeddings/
     - assets/models/
 

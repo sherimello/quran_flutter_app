@@ -32,7 +32,6 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   List<Map<String, dynamic>> _ayahs = [];
   bool _isLoading = true;
   String? _playingAyahId; // Unique ID: "surah:ayah"
-  bool _isReadingMode = false;
 
   bool _isAudioDownloaded = false;
   bool _isDownloadingAudio = false;
@@ -160,6 +159,22 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           pronunciation: settings.pronunciation,
         );
 
+        Map<int, List<Map<String, dynamic>>>? surahWbwData;
+        if (settings.showWordByWord) {
+          surahWbwData = await DatabaseService().getWordByWordForSurah(
+            surahNum,
+            language: settings.wordByWordLanguage,
+            transliteration: settings.wordByWordTransliteration,
+          );
+        }
+
+        Map<int, String>? surahTafseerData;
+        if (settings.showTafseer) {
+          surahTafseerData = await DatabaseService().getTafseersForSurah(
+            surahNum,
+          );
+        }
+
         for (var ayah in surahAyahs) {
           final ayahNum = ayah['numberInSurah'];
 
@@ -167,35 +182,20 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           if (surahNum == startSurah && ayahNum < startVerse) continue;
           if (surahNum == endSurah && ayahNum > endVerse) break;
 
-          ayahs.add(ayah);
-        }
-      }
-
-      // Fetch Word-by-Word if enabled
-      if (settings.showWordByWord) {
-        for (var ayah in ayahs) {
-          final words = await DatabaseService().getWordByWordForAyah(
-            ayah['number'],
-            ayah['numberInSurah'],
-            language: settings.wordByWordLanguage,
-            transliteration: settings.wordByWordTransliteration,
-          );
-          ayah['words'] = words;
-        }
-      }
-
-      // Fetch Tafseer if enabled
-      if (settings.showTafseer) {
-        for (var ayah in ayahs) {
-          final tafseer = await DatabaseService().getTafseer(
-            ayah['number'],
-            ayah['numberInSurah'],
-          );
-          if (tafseer != null) {
-            ayah['tafseer'] = tafseer;
-            ayah['tafseerSnippet'] = _stripHtml(tafseer);
-            ayah['isTafseerExpanded'] = false;
+          if (settings.showWordByWord && surahWbwData != null) {
+            ayah['words'] = surahWbwData[ayahNum];
           }
+
+          if (settings.showTafseer && surahTafseerData != null) {
+            final tafseer = surahTafseerData[ayahNum];
+            if (tafseer != null) {
+              ayah['tafseer'] = tafseer;
+              ayah['tafseerSnippet'] = _stripHtml(tafseer);
+              ayah['isTafseerExpanded'] = false;
+            }
+          }
+
+          ayahs.add(ayah);
         }
       }
 
@@ -501,75 +501,85 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
+        return SafeArea(
+          bottom: false,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(25),
               ),
-              const SizedBox(height: 24),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Juz Information',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_juzInfo!['juz_info'] != null &&
-                          _juzInfo!['juz_info'].toString().isNotEmpty) ...[
-                        const Text(
-                          'Background',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _juzInfo!['juz_info'],
-                          style: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      if (_juzInfo!['juz_learning'] != null &&
-                          _juzInfo!['juz_learning'].toString().isNotEmpty) ...[
-                        const Text(
-                          'Learning Points',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _juzInfo!['juz_learning'],
-                          style: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
-                      ],
-                      const SizedBox(height: 40),
-                    ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Juz Information',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_juzInfo!['juz_info'] != null &&
+                            _juzInfo!['juz_info'].toString().isNotEmpty) ...[
+                          const Text(
+                            'Background',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _juzInfo!['juz_info'],
+                            style: const TextStyle(fontSize: 16, height: 1.5),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_juzInfo!['juz_learning'] != null &&
+                            _juzInfo!['juz_learning']
+                                .toString()
+                                .isNotEmpty) ...[
+                          const Text(
+                            'Learning Points',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _juzInfo!['juz_learning'],
+                            style: const TextStyle(fontSize: 16, height: 1.5),
+                          ),
+                        ],
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -627,12 +637,12 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
             ),
             actions: [
               GestureDetector(
-                onTap: () => setState(() => _isReadingMode = !_isReadingMode),
+                onTap: () => settings.setIsReadingMode(!settings.isReadingMode),
                 child: Icon(
-                  _isReadingMode
+                  settings.isReadingMode
                       ? CupertinoIcons.book_fill
                       : CupertinoIcons.book,
-                  color: _isReadingMode
+                  color: settings.isReadingMode
                       ? Theme.of(context).colorScheme.primary
                       : null,
                 ),
@@ -805,7 +815,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                               'g',
                               style: TextStyle(
                                 fontFamily: 'besmallah',
-                                fontSize: settings.fontSize + 27,
+                                fontSize: settings.arabicFontSize + 27,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                               textAlign: TextAlign.center,
@@ -848,13 +858,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       highlightColor: Colors.transparent,
       borderRadius: BorderRadius.circular(45),
       onLongPress: () {
-        if (SupabaseService().currentUser == null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Login to bookmark')));
-        } else {
-          _addToBookmark(ayah['number'], ayah['numberInSurah']);
-        }
+        _addToBookmark(ayah['number'], ayah['numberInSurah']);
       },
       onTap: () {
         if (_isAudioDownloaded) {
@@ -882,105 +886,99 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!_isReadingMode)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      width: size.width * 0.079,
-                      height: size.width * 0.071,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        color: Theme.of(context).brightness == Brightness.light
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.1)
-                            : Colors.white.withAlpha(15),
-                        border: Border.all(
-                          width: 1,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: size.width * 0.079,
+                    height: size.width * 0.071,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(100),
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.1)
+                          : Colors.white.withAlpha(15),
+                      border: Border.all(
+                        width: 1,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.1),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${ayah['numberInSurah']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 0,
+                          fontWeight: FontWeight.w900,
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.1),
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${ayah['numberInSurah']}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 0,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimaryContainer,
-                          ),
+                          ).colorScheme.onPrimaryContainer,
                         ),
                       ),
                     ),
-                    if (_isAudioDownloaded)
-                      TextButton.icon(
-                        onPressed: () {
-                          if (isPlaying) {
-                            _audioPlayer.stop();
-                            setState(() {
-                              _playingAyahId = null;
-                              _isAutoPlaying = false;
-                            });
-                          } else {
-                            _playAyah(
-                              ayah['surahNumber'],
-                              ayah['numberInSurah'],
-                            );
-                          }
-                        },
-                        icon: Icon(
-                          isPlaying
-                              ? CupertinoIcons.pause
-                              : CupertinoIcons.play_arrow,
-                          size: 15,
+                  ),
+                  if (!settings.isReadingMode && _isAudioDownloaded)
+                    TextButton.icon(
+                      onPressed: () {
+                        if (isPlaying) {
+                          _audioPlayer.stop();
+                          setState(() {
+                            _playingAyahId = null;
+                            _isAutoPlaying = false;
+                          });
+                        } else {
+                          _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
+                        }
+                      },
+                      icon: Icon(
+                        isPlaying
+                            ? CupertinoIcons.pause
+                            : CupertinoIcons.play_arrow,
+                        size: 15,
+                        color: Theme.of(context).brightness == Brightness.light
+                            ? Colors.black
+                            : Colors.white,
+                      ),
+                      label: Text(
+                        isPlaying ? "Stop" : "Play",
+                        style: TextStyle(
+                          height: 1.0,
+                          fontSize: 13,
                           color:
                               Theme.of(context).brightness == Brightness.light
                               ? Colors.black
                               : Colors.white,
                         ),
-                        label: Text(
-                          isPlaying ? "Stop" : "Play",
-                          style: TextStyle(
-                            height: 1.0,
-                            fontSize: 13,
+                      ),
+                      style: TextButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).brightness == Brightness.light
+                            ? Colors.black.withOpacity(0.04)
+                            : Colors.white.withOpacity(0.08),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                          side: BorderSide(
+                            width: .5,
                             color:
                                 Theme.of(context).brightness == Brightness.light
-                                ? Colors.black
-                                : Colors.white,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).brightness == Brightness.light
-                              ? Colors.black.withOpacity(0.04)
-                              : Colors.white.withOpacity(0.08),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            side: BorderSide(
-                              width: .5,
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.light
-                                  ? Colors.black.withOpacity(0.15)
-                                  : Colors.white.withOpacity(0.15),
-                            ),
+                                ? Colors.black.withOpacity(0.15)
+                                : Colors.white.withOpacity(0.15),
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 11),
 
               // Arabic text
@@ -996,7 +994,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                           ),
                           TextStyle(
                             fontFamily: arabicFont,
-                            fontSize: settings.fontSize + 6,
+                            fontSize: settings.arabicFontSize,
                             height: 1.8,
                             wordSpacing: 0,
                             color: Theme.of(context).colorScheme.onSurface,
@@ -1014,7 +1012,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                       textDirection: TextDirection.rtl,
                       style: TextStyle(
                         fontFamily: arabicFont,
-                        fontSize: settings.fontSize + 6,
+                        fontSize: settings.arabicFontSize,
                         height: 1.8,
                         wordSpacing: 0,
                         color: Theme.of(context).colorScheme.onSurface,
@@ -1029,7 +1027,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                   HtmlWidget(
                     '<div style="text-align: end;">${ayah['pronunciation']}</div>',
                     textStyle: TextStyle(
-                      fontSize: settings.fontSize * 0.75,
+                      fontSize: settings.translationFontSize * 0.75,
                       color: Theme.of(context).colorScheme.primary,
                       fontStyle: FontStyle.italic,
                     ),
@@ -1039,7 +1037,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                     _decodeLatin(ayah['pronunciation']),
                     textAlign: TextAlign.end,
                     style: TextStyle(
-                      fontSize: settings.fontSize * 0.75,
+                      fontSize: settings.translationFontSize * 0.75,
                       color: Theme.of(context).colorScheme.primary,
                       fontStyle: FontStyle.italic,
                       letterSpacing: 0.2,
@@ -1048,7 +1046,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               ],
               const SizedBox(height: 11),
               // WORD BY WORD UI
-              if (!_isReadingMode &&
+              if (!settings.isReadingMode &&
                   settings.showWordByWord &&
                   ayah['words'] != null) ...[
                 const SizedBox(height: 16),
@@ -1099,7 +1097,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                             Text(
                               word['transliteration'],
                               style: TextStyle(
-                                fontSize: settings.fontSize * 0.55,
+                                fontSize: settings.translationFontSize * 0.55,
                                 fontStyle: FontStyle.italic,
                                 color: Theme.of(context).colorScheme.tertiary,
                               ),
@@ -1108,7 +1106,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                           Text(
                             word['translation'] ?? '',
                             style: TextStyle(
-                              fontSize: settings.fontSize * 0.6,
+                              fontSize: settings.translationFontSize * 0.6,
                               fontWeight: FontWeight.w900,
                               color: Theme.of(context).colorScheme.secondary,
                             ),
@@ -1119,16 +1117,16 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                   }).toList(),
                 ),
               ],
-              if (!_isReadingMode) const SizedBox(height: 11),
+              if (!settings.isReadingMode) const SizedBox(height: 11),
 
               // TRANSLATION
-              if (!_isReadingMode && ayah['translation'] != null) ...[
+              if (!settings.isReadingMode && ayah['translation'] != null) ...[
                 const SizedBox(height: 11),
                 Text(
                   ayah['translation'],
                   textAlign: TextAlign.left,
                   style: TextStyle(
-                    fontSize: settings.fontSize - 4,
+                    fontSize: settings.translationFontSize,
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.normal,
                   ),
@@ -1136,7 +1134,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               ],
 
               // TAFSEER
-              if (!_isReadingMode &&
+              if (!settings.isReadingMode &&
                   settings.showTafseer &&
                   ayah['tafseer'] != null) ...[
                 const SizedBox(height: 12),
@@ -1171,7 +1169,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                             ? HtmlWidget(
                                 ayah['tafseer'],
                                 textStyle: TextStyle(
-                                  fontSize: settings.fontSize * 0.75,
+                                  fontSize: settings.translationFontSize * 0.75,
                                 ),
                               )
                             : Text(
@@ -1179,7 +1177,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: settings.fontSize * 0.75,
+                                  fontSize: settings.translationFontSize * 0.75,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),

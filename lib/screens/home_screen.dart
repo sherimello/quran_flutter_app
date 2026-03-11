@@ -412,7 +412,8 @@ class _HomeScreenState extends State<HomeScreen>
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        if (_filteredSurahs.isNotEmpty) ...[
+        if (_filteredSurahs.isNotEmpty &&
+            _searchController.text.trim().isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
             child: Text(
@@ -425,8 +426,8 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
+        if (_filteredSurahs.isNotEmpty)
           ..._filteredSurahs.map((surah) => _buildSurahTile(surah)),
-        ],
         if (_isSearchingVerses)
           const Center(
             child: Padding(

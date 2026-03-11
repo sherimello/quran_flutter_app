@@ -53,27 +53,55 @@ class SettingsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              const Text('Font Size'),
+              const Text('Arabic Font Size'),
               Slider(
-                value: settings.fontSize,
-                min: 14.0,
-                max: 40.0,
-                divisions: 13,
-                label: settings.fontSize.round().toString(),
+                value: settings.arabicFontSize,
+                min: 20.0,
+                max: 50.0,
+                divisions: 30,
+                label: settings.arabicFontSize.round().toString(),
                 onChanged: (double value) {
-                  settings.setFontSize(value);
+                  settings.setArabicFontSize(value);
                 },
               ),
-              Center(
-                child: Text(
-                  'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
-                  style: TextStyle(
-                    fontFamily: settings.arabicScript == 'utsmani'
-                        ? 'hafs'
-                        : 'qalammajeed3',
-                    fontSize: settings.fontSize + 6,
+              const Text('Translation Font Size'),
+              Slider(
+                value: settings.translationFontSize,
+                min: 12.0,
+                max: 30.0,
+                divisions: 18,
+                label: settings.translationFontSize.round().toString(),
+                onChanged: (double value) {
+                  settings.setTranslationFontSize(value);
+                },
+              ),
+              const SizedBox(height: 16),
+              Column(
+                children: [
+                  Center(
+                    child: Text(
+                      'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
+                      style: TextStyle(
+                        fontFamily: settings.arabicScript == 'utsmani'
+                            ? 'hafs'
+                            : 'qalammajeed3',
+                        fontSize: settings.arabicFontSize,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
+                      style: TextStyle(
+                        fontSize: settings.translationFontSize,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
               const Divider(),
               const SizedBox(height: 16),
@@ -157,7 +185,7 @@ class SettingsScreen extends StatelessWidget {
               ),
               SwitchListTile(
                 title: const Text('Word-by-Word Translation'),
-                subtitle: const Text('Show individual word meanings'),
+                subtitle: const Text('Show individual word meanings (English)'),
                 value: settings.showWordByWord,
                 onChanged: (bool value) {
                   settings.setShowWordByWord(value);
@@ -171,96 +199,18 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      ListTile(
+                      SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('WBW Language'),
-                        trailing: DropdownButton<String>(
-                          value: settings.wordByWordLanguage,
-                          onChanged: (String? value) {
-                            if (value != null) {
-                              settings.setWordByWordLanguage(value);
-                            }
-                          },
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'en',
-                              child: Text('English'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'bn',
-                              child: Text('Bengali'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'in',
-                              child: Text('Indonesian'),
-                            ),
-                            DropdownMenuItem(value: 'ur', child: Text('Urdu')),
-                            DropdownMenuItem(value: 'hi', child: Text('Hindi')),
-                            DropdownMenuItem(
-                              value: 'tr',
-                              child: Text('Turkish'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ru',
-                              child: Text('Russian'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'fr',
-                              child: Text('French'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'de',
-                              child: Text('German'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'zh',
-                              child: Text('Chinese'),
-                            ),
-                            DropdownMenuItem(value: 'ta', child: Text('Tamil')),
-                            DropdownMenuItem(
-                              value: 'ml',
-                              child: Text('Malayalam'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'fa',
-                              child: Text('Persian'),
-                            ),
-                          ],
+                        title: const Text('Show WBW Transliteration'),
+                        subtitle: const Text(
+                          'Display English transliteration in Word-by-Word',
                         ),
+                        value: settings.showWbwTransliteration,
+                        activeColor: Colors.orange,
+                        onChanged: (bool value) {
+                          settings.setShowWbwTransliteration(value);
+                        },
                       ),
-                      if (settings.wordByWordLanguage == 'en') ...[
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('WBW Transliteration'),
-                          trailing: DropdownButton<String>(
-                            value: settings.wordByWordTransliteration,
-                            onChanged: (String? value) {
-                              if (value != null) {
-                                settings.setWordByWordTransliteration(value);
-                              }
-                            },
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'en_trans',
-                                child: Text('English'),
-                              ),
-                              // Add more if db has them
-                            ],
-                          ),
-                        ),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Show WBW Transliteration'),
-                          subtitle: const Text(
-                            'Display English transliteration in Word-by-Word',
-                          ),
-                          value: settings.showWbwTransliteration,
-                          activeColor: Colors.orange,
-                          onChanged: (bool value) {
-                            settings.setShowWbwTransliteration(value);
-                          },
-                        ),
-                      ],
                     ],
                   ),
                 ),

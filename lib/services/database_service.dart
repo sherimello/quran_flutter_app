@@ -88,14 +88,20 @@ class DatabaseService {
 
     bool exists = await databaseExists(dbPath);
 
-    // Check if we need to update the DB (e.g. if 'allwords' or 'corpus' table is missing)
+    // Check that all required tables exist in the installed DB.
+    // The asset Quran.db contains all these tables; if any are missing
+    // it means an older/incomplete DB is installed — force a fresh copy.
     if (exists) {
       final db = await openDatabase(dbPath, readOnly: true);
       try {
+        await db.rawQuery('SELECT 1 FROM sura_search_sura_search LIMIT 1');
+        await db.rawQuery('SELECT 1 FROM al_quran_indopak_quran LIMIT 1');
+        await db.rawQuery('SELECT 1 FROM terjemahan_quran LIMIT 1');
         await db.rawQuery('SELECT 1 FROM allwords LIMIT 1');
         await db.rawQuery('SELECT 1 FROM corpus LIMIT 1');
         await db.rawQuery('SELECT 1 FROM chapter_information LIMIT 1');
         await db.rawQuery('SELECT 1 FROM juz_information LIMIT 1');
+        await db.close(); // close after successful check
       } catch (e) {
         print('Required table missing. Forcing DB update...');
         await db.close();
@@ -114,6 +120,7 @@ class DatabaseService {
           data.lengthInBytes,
         );
         await File(dbPath).writeAsBytes(bytes, flush: true);
+        print('Quran.db copied from assets successfully.');
       } catch (e) {
         print('Error copying Quran.db: $e');
       }
@@ -211,83 +218,92 @@ class DatabaseService {
     String translation = 'sahih',
     String pronunciation = 'latin_english',
   }) async {
-    final db = await quranDatabase;
+    try {
+      final db = await quranDatabase;
 
-    // Determine table names based on preferences
-    String arabicTable = arabicScript == 'indopak'
-        ? 'al_quran_indopak_quran'
-        : 'al_quran_utsmani_quran';
+      // Determine table names based on preferences
+      String arabicTable = arabicScript == 'indopak'
+          ? 'al_quran_indopak_quran'
+          : 'al_quran_utsmani_quran';
 
-    String translationTable = translation == 'sahih'
-        ? 'terjemahan_quran'
-        : 'jalalayn_quran';
+      String translationTable = translation == 'sahih'
+          ? 'terjemahan_quran'
+          : 'jalalayn_quran';
 
-    String? pronunciationTable;
-    if (pronunciation == 'latin') {
-      pronunciationTable = 'latin_quran';
-    } else if (pronunciation == 'latin_english') {
-      pronunciationTable = 'latin_english_quran';
-    }
+      String? pronunciationTable;
+      if (pronunciation == 'latin') {
+        pronunciationTable = 'latin_quran';
+      } else if (pronunciation == 'latin_english') {
+        pronunciationTable = 'latin_english_quran';
+      }
 
-    // Get Arabic text
-    final arabicResults = await db.query(
-      arabicTable,
-      where: 'sura = ?',
-      whereArgs: [surahNumber],
-      orderBy: 'aya ASC',
-    );
-
-    // Get translations
-    final translationResults = await db.query(
-      translationTable,
-      where: 'sura = ?',
-      whereArgs: [surahNumber],
-      orderBy: 'aya ASC',
-    );
-
-    // Get pronunciations (if requested)
-    List<Map<String, dynamic>>? pronunciationResults;
-    if (pronunciationTable != null) {
-      pronunciationResults = await db.query(
-        pronunciationTable,
+      // Get Arabic text
+      final arabicResults = await db.query(
+        arabicTable,
         where: 'sura = ?',
         whereArgs: [surahNumber],
         orderBy: 'aya ASC',
       );
-    }
 
-    // Get surah name for headers
-    final surahInfo = await getSurahByNumber(surahNumber);
-    final surahName = surahInfo?['englishName'] ?? 'Surah $surahNumber';
+      // Get translations
+      final translationResults = await db.query(
+        translationTable,
+        where: 'sura = ?',
+        whereArgs: [surahNumber],
+        orderBy: 'aya ASC',
+      );
 
-    // Explicitly count ayahs from the DB to ensure accuracy
-    final totalVerses = await _getAyahCountForSurah(surahNumber);
-
-    // Combine results
-    List<Map<String, dynamic>> ayahs = [];
-    for (int i = 0; i < arabicResults.length; i++) {
-      Map<String, dynamic> ayah = {
-        'number': surahNumber, // Surah number (not global verse count)
-        'text': arabicResults[i]['text'],
-        'numberInSurah': arabicResults[i]['aya'],
-        'surahNumber': surahNumber,
-        'surahName': surahName,
-        'numberOfAyahs': totalVerses,
-        'totalVerses': totalVerses,
-      };
-
-      if (i < translationResults.length) {
-        ayah['translation'] = translationResults[i]['text'];
+      // Get pronunciations (if requested)
+      List<Map<String, dynamic>>? pronunciationResults;
+      if (pronunciationTable != null) {
+        try {
+          pronunciationResults = await db.query(
+            pronunciationTable,
+            where: 'sura = ?',
+            whereArgs: [surahNumber],
+            orderBy: 'aya ASC',
+          );
+        } catch (e) {
+          print('Pronunciation table $pronunciationTable missing: $e');
+        }
       }
 
-      if (pronunciationResults != null && i < pronunciationResults.length) {
-        ayah['pronunciation'] = pronunciationResults[i]['text'];
+      // Get surah name for headers
+      final surahInfo = await getSurahByNumber(surahNumber);
+      final surahName = surahInfo?['englishName'] ?? 'Surah $surahNumber';
+
+      // Explicitly count ayahs from the DB to ensure accuracy
+      final totalVerses = await _getAyahCountForSurah(surahNumber);
+
+      // Combine results
+      List<Map<String, dynamic>> ayahs = [];
+      for (int i = 0; i < arabicResults.length; i++) {
+        Map<String, dynamic> ayah = {
+          'number': surahNumber, // Surah number (not global verse count)
+          'text': arabicResults[i]['text'],
+          'numberInSurah': arabicResults[i]['aya'],
+          'surahNumber': surahNumber,
+          'surahName': surahName,
+          'numberOfAyahs': totalVerses,
+          'totalVerses': totalVerses,
+        };
+
+        if (i < translationResults.length) {
+          ayah['translation'] = translationResults[i]['text'];
+        }
+
+        if (pronunciationResults != null && i < pronunciationResults.length) {
+          ayah['pronunciation'] = pronunciationResults[i]['text'];
+        }
+
+        ayahs.add(ayah);
       }
 
-      ayahs.add(ayah);
+      return ayahs;
+    } catch (e) {
+      print('Error fetching ayahs for surah: $e');
+      return [];
     }
-
-    return ayahs;
   }
 
   /// Get word-by-word translation for a specific ayah from 'allwords' table
@@ -297,64 +313,69 @@ class DatabaseService {
     String language = 'en',
     String transliteration = 'en_trans',
   }) async {
-    final db = await quranDatabase;
+    try {
+      final db = await quranDatabase;
 
-    // Ensure columns exist or sanitize input (basic check)
-    // In a real app we might validate against a known list of columns
-    final validLangs = [
-      'bn',
-      'in',
-      'en',
-      'ur',
-      'tr',
-      'ta',
-      'sd',
-      'ru',
-      'fa',
-      'ml',
-      'inh',
-      'hi',
-      'de',
-      'fr',
-      'dv',
-      'zh',
-    ];
-    final validTrans = ['en_trans']; // Add more if available
+      // Ensure columns exist or sanitize input (basic check)
+      // In a real app we might validate against a known list of columns
+      final validLangs = [
+        'bn',
+        'in',
+        'en',
+        'ur',
+        'tr',
+        'ta',
+        'sd',
+        'ru',
+        'fa',
+        'ml',
+        'inh',
+        'hi',
+        'de',
+        'fr',
+        'dv',
+        'zh',
+      ];
+      final validTrans = ['en_trans']; // Add more if available
 
-    final langCol = validLangs.contains(language) ? language : 'en';
-    final transCol = validTrans.contains(transliteration)
-        ? transliteration
-        : 'en_trans';
+      final langCol = validLangs.contains(language) ? language : 'en';
+      final transCol = validTrans.contains(transliteration)
+          ? transliteration
+          : 'en_trans';
 
-    // JOIN corpus to get the actual Arabic word text
-    final results = await db.rawQuery(
-      '''
-      SELECT 
-        w.word, 
-        COALESCE(c.ar1,'') || COALESCE(c.ar2,'') || COALESCE(c.ar3,'') || COALESCE(c.ar4,'') || COALESCE(c.ar5,'') as arabic,
-        w.$langCol as translation, 
-        w.$transCol as transliteration
-      FROM allwords w
-      JOIN corpus c 
-        ON w.sura = c.surah 
-        AND w.ayah = c.ayah 
-        AND w.word = c.word
-      WHERE w.sura = ? AND w.ayah = ?
-      ORDER BY w.word ASC
-    ''',
-      [surah, ayah],
-    );
+      // JOIN corpus to get the actual Arabic word text
+      final results = await db.rawQuery(
+        '''
+        SELECT
+          w.word,
+          COALESCE(c.ar1,'') || COALESCE(c.ar2,'') || COALESCE(c.ar3,'') || COALESCE(c.ar4,'') || COALESCE(c.ar5,'') as arabic,
+          w.$langCol as translation,
+          w.$transCol as transliteration
+        FROM allwords w
+        JOIN corpus c
+          ON w.sura = c.surah
+          AND w.ayah = c.ayah
+          AND w.word = c.word
+        WHERE w.sura = ? AND w.ayah = ?
+        ORDER BY w.word ASC
+      ''',
+        [surah, ayah],
+      );
 
-    return results
-        .map(
-          (row) => {
-            'word': row['word'],
-            'arabic': row['arabic'],
-            'translation': row['translation'],
-            'transliteration': row['transliteration'],
-          },
-        )
-        .toList();
+      return results
+          .map(
+            (row) => {
+              'word': row['word'],
+              'arabic': row['arabic'],
+              'translation': row['translation'],
+              'transliteration': row['transliteration'],
+            },
+          )
+          .toList();
+    } catch (e) {
+      print('Error fetching word-by-word: $e');
+      return [];
+    }
   }
 
   Future<Map<int, List<Map<String, dynamic>>>> getWordByWordForSurah(
@@ -362,68 +383,70 @@ class DatabaseService {
     String language = 'en',
     String transliteration = 'en_trans',
   }) async {
-    final db = await quranDatabase;
+    try {
+      final db = await quranDatabase;
 
-    final validLangs = [
-      'bn',
-      'in',
-      'en',
-      'ur',
-      'tr',
-      'ta',
-      'sd',
-      'ru',
-      'fa',
-      'ml',
-      'inh',
-      'hi',
-      'de',
-      'fr',
-      'dv',
-      'zh',
-    ];
-    final validTrans = ['en_trans'];
+      final validLangs = [
+        'bn',
+        'in',
+        'en',
+        'ur',
+        'tr',
+        'ta',
+        'sd',
+        'ru',
+        'fa',
+        'ml',
+        'inh',
+        'hi',
+        'de',
+        'fr',
+        'dv',
+        'zh',
+      ];
+      final validTrans = ['en_trans'];
 
-    final langCol = validLangs.contains(language) ? language : 'en';
-    final transCol = validTrans.contains(transliteration)
-        ? transliteration
-        : 'en_trans';
+      final langCol = validLangs.contains(language) ? language : 'en';
+      final transCol = validTrans.contains(transliteration)
+          ? transliteration
+          : 'en_trans';
 
-    // Use JOIN to get Arabic text from corpus table.
-    // corpus splits words into morphological parts (ar1..ar5).
-    // We concatenate them with COALESCE to build the full word.
-    final results = await db.rawQuery(
-      '''
-      SELECT 
-        w.ayah, 
-        w.word, 
-        COALESCE(c.ar1,'') || COALESCE(c.ar2,'') || COALESCE(c.ar3,'') || COALESCE(c.ar4,'') || COALESCE(c.ar5,'') as arabic,
-        w.$langCol as translation, 
-        w.$transCol as transliteration
-      FROM allwords w
-      JOIN corpus c 
-        ON w.sura = c.surah 
-        AND w.ayah = c.ayah 
-        AND w.word = c.word
-      WHERE w.sura = ?
-      ORDER BY w.ayah ASC, w.word ASC
-    ''',
-      [surah],
-    );
+      final results = await db.rawQuery(
+        '''
+        SELECT 
+          w.ayah, 
+          w.word, 
+          COALESCE(c.ar1,'') || COALESCE(c.ar2,'') || COALESCE(c.ar3,'') || COALESCE(c.ar4,'') || COALESCE(c.ar5,'') as arabic,
+          w.$langCol as translation, 
+          w.$transCol as transliteration
+        FROM allwords w
+        JOIN corpus c 
+          ON w.sura = c.surah 
+          AND w.ayah = c.ayah 
+          AND w.word = c.word
+        WHERE w.sura = ?
+        ORDER BY w.ayah ASC, w.word ASC
+      ''',
+        [surah],
+      );
 
-    Map<int, List<Map<String, dynamic>>> byAyah = {};
-    for (var row in results) {
-      int aya = row['ayah'] as int;
-      if (!byAyah.containsKey(aya)) byAyah[aya] = [];
+      Map<int, List<Map<String, dynamic>>> byAyah = {};
+      for (var row in results) {
+        int aya = row['ayah'] as int;
+        if (!byAyah.containsKey(aya)) byAyah[aya] = [];
 
-      byAyah[aya]!.add({
-        'word': row['word'],
-        'arabic': row['arabic'], // The exact Arabic text from DB
-        'translation': row['translation'],
-        'transliteration': row['transliteration'],
-      });
+        byAyah[aya]!.add({
+          'word': row['word'],
+          'arabic': row['arabic'],
+          'translation': row['translation'],
+          'transliteration': row['transliteration'],
+        });
+      }
+      return byAyah;
+    } catch (e) {
+      print('Error fetching words for surah: $e');
+      return {};
     }
-    return byAyah;
   }
 
   /// Search surahs by name (multi-language)

@@ -3,8 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
-  double _fontSize = 18.0;
+  double _arabicFontSize = 24.0;
+  double _translationFontSize = 16.0;
   bool _showTafseer = false;
+  bool _isReadingMode = false;
 
   // New settings for Quran.db
   String _arabicScript = 'indopak'; // 'indopak' or 'utsmani'
@@ -21,8 +23,10 @@ class SettingsProvider with ChangeNotifier {
   bool _wasLastReadJuz = false;
 
   ThemeMode get themeMode => _themeMode;
-  double get fontSize => _fontSize;
+  double get arabicFontSize => _arabicFontSize;
+  double get translationFontSize => _translationFontSize;
   bool get showTafseer => _showTafseer;
+  bool get isReadingMode => _isReadingMode;
   String get arabicScript => _arabicScript;
   String get translation => _translation;
   String get pronunciation => _pronunciation;
@@ -46,10 +50,17 @@ class SettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setFontSize(double size) async {
-    _fontSize = size;
+  Future<void> setArabicFontSize(double size) async {
+    _arabicFontSize = size;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('font_size', size);
+    await prefs.setDouble('arabic_font_size', size);
+    notifyListeners();
+  }
+
+  Future<void> setTranslationFontSize(double size) async {
+    _translationFontSize = size;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('translation_font_size', size);
     notifyListeners();
   }
 
@@ -57,6 +68,13 @@ class SettingsProvider with ChangeNotifier {
     _showTafseer = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_tafseer', value);
+    notifyListeners();
+  }
+
+  Future<void> setIsReadingMode(bool value) async {
+    _isReadingMode = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_reading_mode', value);
     notifyListeners();
   }
 
@@ -96,23 +114,17 @@ class SettingsProvider with ChangeNotifier {
   }
 
   // Word By Word Settings
-  String _wordByWordLanguage = 'en'; // e.g. 'bn', 'en', 'ur'
+  String _wordByWordLanguage = 'en'; // Fixed to 'en'
   String _wordByWordTransliteration = 'en_trans';
 
   String get wordByWordLanguage => _wordByWordLanguage;
   String get wordByWordTransliteration => _wordByWordTransliteration;
 
   Future<void> setWordByWordLanguage(String lang) async {
-    _wordByWordLanguage = lang;
+    // Only 'en' is allowed now, but we'll keep the method for compatibility
+    _wordByWordLanguage = 'en';
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('wbw_language', lang);
-
-    // If language is not English, turn off transliteration
-    if (lang != 'en') {
-      _showWbwTransliteration = false;
-      await prefs.setBool('show_wbw_transliteration', false);
-    }
-
+    await prefs.setString('wbw_language', 'en');
     notifyListeners();
   }
 
@@ -162,13 +174,21 @@ class SettingsProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final themeIndex = prefs.getInt('theme_mode') ?? 0;
     _themeMode = ThemeMode.values[themeIndex];
-    _fontSize = prefs.getDouble('font_size') ?? 18.0;
+
+    // Migration logic from single font_size to separate ones
+    final oldFontSize = prefs.getDouble('font_size') ?? 18.0;
+    _arabicFontSize =
+        prefs.getDouble('arabic_font_size') ?? (oldFontSize + 6.0);
+    _translationFontSize =
+        prefs.getDouble('translation_font_size') ?? oldFontSize;
+
     _showTafseer = prefs.getBool('show_tafseer') ?? false;
+    _isReadingMode = prefs.getBool('is_reading_mode') ?? false;
     _arabicScript = prefs.getString('arabic_script') ?? 'indopak';
     _translation = prefs.getString('translation') ?? 'sahih';
     _pronunciation = prefs.getString('pronunciation') ?? 'latin_english';
     _showWordByWord = prefs.getBool('show_word_by_word') ?? false;
-    _wordByWordLanguage = prefs.getString('wbw_language') ?? 'en';
+    _wordByWordLanguage = 'en'; // Force English
     _wordByWordTransliteration =
         prefs.getString('wbw_transliteration') ?? 'en_trans';
     _enableTajweed = prefs.getBool('enable_tajweed') ?? false;

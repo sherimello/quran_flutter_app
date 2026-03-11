@@ -32,7 +32,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   double _downloadProgress = 0.0;
   int? _playingAyahId;
   bool _isAutoPlaying = false;
-  bool _isReadingMode = false;
 
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
@@ -246,79 +245,90 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
+        return SafeArea(
+          bottom: false,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(25),
               ),
-              const SizedBox(height: 24),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Surah Information',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_chapterInfo!['chapter_info'] != null &&
-                          _chapterInfo!['chapter_info']
-                              .toString()
-                              .isNotEmpty) ...[
-                        const Text(
-                          'About this Surah',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _chapterInfo!['chapter_info'],
-                          style: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      if (_chapterInfo!['chapter_virtue'] != null &&
-                          _chapterInfo!['chapter_virtue']
-                              .toString()
-                              .isNotEmpty) ...[
-                        const Text(
-                          'Virtues',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        HtmlWidget(
-                          _chapterInfo!['chapter_virtue'],
-                          textStyle: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
-                      ],
-                      const SizedBox(height: 40),
-                    ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Surah Information',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_chapterInfo!['chapter_info'] != null &&
+                            _chapterInfo!['chapter_info']
+                                .toString()
+                                .isNotEmpty) ...[
+                          const Text(
+                            'About this Surah',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _chapterInfo!['chapter_info'],
+                            style: const TextStyle(fontSize: 16, height: 1.5),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                        if (_chapterInfo!['chapter_virtue'] != null &&
+                            _chapterInfo!['chapter_virtue']
+                                .toString()
+                                .isNotEmpty) ...[
+                          const Text(
+                            'Virtues',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          HtmlWidget(
+                            _chapterInfo!['chapter_virtue'],
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -665,12 +675,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             ),
             actions: [
               GestureDetector(
-                onTap: () => setState(() => _isReadingMode = !_isReadingMode),
+                onTap: () => settings.setIsReadingMode(!settings.isReadingMode),
                 child: Icon(
-                  _isReadingMode
+                  settings.isReadingMode
                       ? CupertinoIcons.book_fill
                       : CupertinoIcons.book,
-                  color: _isReadingMode
+                  color: settings.isReadingMode
                       ? Theme.of(context).colorScheme.primary
                       : null,
                 ),
@@ -733,562 +743,528 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           ),
           body: _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16, bottom: 16),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'surah${widget.surah['number'].toString().length == 3
-                                    ? widget.surah['number'].toString()
-                                    : widget.surah['number'].toString().length == 2
-                                    ? "0${widget.surah['number']}"
-                                    : "00${widget.surah['number']}"}',
-                                style: TextStyle(
-                                  fontFamily: 'surahname',
-                                  fontSize: size.width * .1,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    widget.surah['surahName'] ??
-                                        'Surah ${widget.surah['name']}',
-                                    style: TextStyle(
-                                      fontSize: size.width * .045,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                      height: 0,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  Text(
-                                    '${_ayahs.isNotEmpty ? (_ayahs[0]['totalVerses'] ?? 0) : 0} Verses',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withAlpha(95),
-                                      fontWeight: FontWeight.w900,
-                                      height: 0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+              : _ayahs.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Text(
+                      'Verse data not found. The database might be incomplete.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
-                    // Basmala Header
-                    if (showBasmalaHeader)
-                      Text(
-                        'g',
-                        style: TextStyle(
-                          fontFamily: 'besmallah',
-                          fontSize: settings.fontSize + 27,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                    // Ayah List
-                    Expanded(
-                      child: ScrollablePositionedList.builder(
-                        physics: const BouncingScrollPhysics(),
-                        itemScrollController: _itemScrollController,
-                        itemPositionsListener: _itemPositionsListener,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 0,
-                          horizontal: 20,
-                        ),
-                        itemCount: _ayahs.length,
-                        itemBuilder: (context, index) {
-                          final ayah = _ayahs[index];
-                          final isPlaying =
-                              _playingAyahId == ayah['numberInSurah'];
-
-                          // Handle Basmala stripping
-                          String rawText = ayah['text'] ?? '';
-                          String displayText =
-                              (index == 0 && widget.surah['number'] != 1)
-                              ? _removeBasmala(rawText)
-                              : rawText;
-
-                          var size = MediaQuery.of(context).size;
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: InkWell(
-                              splashColor: Colors.transparent,
-                              highlightColor: Colors.transparent,
-                              borderRadius: BorderRadius.circular(45),
-                              onLongPress: () {
-                                _addToBookmark(
-                                  widget.surah['number'],
-                                  ayah['numberInSurah'],
-                                );
-                              },
-                              onTap: () => _playAyah(ayah['numberInSurah']),
-                              child: Card(
-                                semanticContainer: false,
-                                surfaceTintColor: Colors
-                                    .transparent, // Removes M3 elevation tint
-                                color: isPlaying
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.12)
-                                    : Theme.of(context).brightness ==
-                                          Brightness.light
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.07)
-                                    : Colors.white.withAlpha(15),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(45),
+                  ),
+                )
+              : ScrollablePositionedList.builder(
+                  physics: const BouncingScrollPhysics(),
+                  itemScrollController: _itemScrollController,
+                  itemPositionsListener: _itemPositionsListener,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 20,
+                  ),
+                  itemCount: _ayahs.length + 2, // Header + Ayahs + Bottom Space
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      // Surah Header
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16, bottom: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'surah${widget.surah['number'].toString().length == 3
+                                      ? widget.surah['number'].toString()
+                                      : widget.surah['number'].toString().length == 2
+                                      ? "0${widget.surah['number']}"
+                                      : "00${widget.surah['number']}"}',
+                                  style: TextStyle(
+                                    fontFamily: 'surahname',
+                                    fontSize: size.width * .1,
+                                  ),
                                 ),
-
-                                child: Padding(
-                                  padding: const EdgeInsets.all(21.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      // if (!_isReadingMode)
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Container(
-                                            width: size.width * 0.079,
-                                            height: size.width * 0.071,
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              color:
-                                                  Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.light
-                                                  ? Theme.of(context)
-                                                        .colorScheme
-                                                        .primary
-                                                        .withOpacity(0.1)
-                                                  : Colors.white.withAlpha(15),
-                                              border: Border.all(
-                                                width: 1,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                    .withOpacity(0.1),
-                                              ),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                '${ayah['numberInSurah']}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  height: 0,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onPrimaryContainer,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                          if (!_isReadingMode &&
-                                              _isAudioDownloaded)
-                                            TextButton.icon(
-                                              onPressed: () {
-                                                _playAyah(
-                                                  ayah['numberInSurah'],
-                                                );
-                                              },
-                                              icon: Icon(
-                                                isPlaying
-                                                    ? CupertinoIcons.pause
-                                                    : CupertinoIcons.play_arrow,
-                                                size: 15,
-                                                color:
-                                                    Theme.of(
-                                                          context,
-                                                        ).brightness ==
-                                                        Brightness.light
-                                                    ? Colors.black
-                                                    : Colors.white,
-                                              ),
-                                              label: Text(
-                                                isPlaying ? "Stop" : "Play",
-                                                style: TextStyle(
-                                                  height: 1.0,
-                                                  fontSize: 13,
-                                                  color:
-                                                      Theme.of(
-                                                            context,
-                                                          ).brightness ==
-                                                          Brightness.light
-                                                      ? Colors.black
-                                                      : Colors.white,
-                                                ),
-                                              ),
-                                              style: TextButton.styleFrom(
-                                                backgroundColor:
-                                                    Theme.of(
-                                                          context,
-                                                        ).brightness ==
-                                                        Brightness.light
-                                                    ? Colors.black.withOpacity(
-                                                        0.04,
-                                                      )
-                                                    : Colors.white.withOpacity(
-                                                        0.08,
-                                                      ),
-                                                tapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 4,
-                                                    ),
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        100,
-                                                      ),
-                                                  side: BorderSide(
-                                                    width: .5,
-                                                    color:
-                                                        Theme.of(
-                                                              context,
-                                                            ).brightness ==
-                                                            Brightness.light
-                                                        ? Colors.black
-                                                              .withOpacity(0.15)
-                                                        : Colors.white
-                                                              .withOpacity(
-                                                                0.15,
-                                                              ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      widget.surah['name'] ??
+                                          'Surah ${widget.surah['number']}',
+                                      style: TextStyle(
+                                        fontSize: size.width * .045,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                        height: 0,
                                       ),
-                                      const SizedBox(height: 11),
-                                      // Row: number and actions
-                                      settings.enableTajweed
-                                          ? RichText(
-                                              textAlign: TextAlign.right,
-                                              textDirection: TextDirection.rtl,
-                                              text: TextSpan(
-                                                children: TajweedRenderer.getTajweedSpans(
-                                                  displayText.replaceAllMapped(
-                                                    RegExp(
-                                                      r'([\u06D6-\u06DC])',
-                                                    ),
-                                                    (match) =>
-                                                        '   ${match.group(0)} ',
-                                                  ),
-                                                  TextStyle(
-                                                    fontFamily: arabicFont,
-                                                    fontSize:
-                                                        settings.fontSize + 6,
-                                                    height: 1.8,
-                                                    wordSpacing: 0,
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.onSurface,
-                                                  ),
-                                                  isIndopak:
-                                                      arabicFont ==
-                                                      'qalammajeed3',
-                                                ),
-                                              ),
-                                            )
-                                          : Text(
-                                              displayText.replaceAllMapped(
-                                                RegExp(r'([\u06D6-\u06DC])'),
-                                                (match) =>
-                                                    '      ${match.group(0)} ',
-                                              ),
-                                              textAlign: TextAlign.right,
-                                              textDirection: TextDirection.rtl,
-                                              style: TextStyle(
-                                                fontFamily: arabicFont,
-                                                fontSize: settings.fontSize + 6,
-                                                height: 1.8,
-                                                wordSpacing: 0,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurface,
-                                              ),
-                                            ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    Text(
+                                      '${_ayahs.isNotEmpty ? (_ayahs[0]['totalVerses'] ?? widget.surah['numberOfAyahs']) : widget.surah['numberOfAyahs']} Verses',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface.withAlpha(95),
+                                        fontWeight: FontWeight.w900,
+                                        height: 0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (showBasmalaHeader)
+                            Text(
+                              'g',
+                              style: TextStyle(
+                                fontFamily: 'besmallah',
+                                fontSize: settings.arabicFontSize + 27,
+                                height: 0,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          // if (_chapterInfo != null) ...[
+                          //   const SizedBox(height: 10),
+                          //   Text(
+                          //     _chapterInfo!['revelation_place'] ?? '',
+                          //     style: TextStyle(
+                          //       fontSize: size.width * .035,
+                          //       fontWeight: FontWeight.bold,
+                          //       color: Theme.of(context).colorScheme.onSurface,
+                          //     ),
+                          //   ),
+                          // ],
+                          // const SizedBox(height: 14),
+                        ],
+                      );
+                    }
 
-                                      // TRANSLITERATION
-                                      if (settings.pronunciation != 'none' &&
-                                          ayah['pronunciation'] != null) ...[
-                                        const SizedBox(height: 8),
-                                        if (settings.pronunciation ==
-                                            'latin_english')
-                                          HtmlWidget(
-                                            '<div style="text-align: end;">${ayah['pronunciation']}</div>',
-                                            textStyle: TextStyle(
-                                              fontSize:
-                                                  settings.fontSize * 0.75,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                          )
-                                        else
-                                          Text(
-                                            _decodeLatin(ayah['pronunciation']),
-                                            textAlign: TextAlign.end,
-                                            style: TextStyle(
-                                              fontSize:
-                                                  settings.fontSize * 0.75,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                              fontStyle: FontStyle.italic,
-                                              letterSpacing: 0.2,
-                                            ),
-                                          ),
-                                      ],
-                                      const SizedBox(height: 11),
-                                      // WORD BY WORD UI
-                                      if (!_isReadingMode &&
-                                          settings.showWordByWord &&
-                                          ayah['words'] != null) ...[
-                                        const SizedBox(height: 16),
-                                        Wrap(
-                                          alignment: WrapAlignment.start,
-                                          direction: Axis.horizontal,
-                                          textDirection: TextDirection.rtl,
-                                          runAlignment: WrapAlignment.start,
-                                          runSpacing: 7,
-                                          spacing: 7,
-                                          children: (ayah['words'] as List).map((
-                                            word,
-                                          ) {
-                                            return Container(
-                                              // margin:
-                                              //     const EdgeInsets.symmetric(
-                                              //       horizontal: 4,
-                                              //     ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 11,
-                                                    vertical: 6,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    Theme.of(
-                                                          context,
-                                                        ).brightness ==
-                                                        Brightness.light
-                                                    ? Colors.black.withOpacity(
-                                                        0.04,
-                                                      )
-                                                    : Colors.white.withOpacity(
-                                                        0.07,
-                                                      ),
-                                                borderRadius:
-                                                    BorderRadius.circular(19),
-                                                border: Border.all(
-                                                  color:
-                                                      Theme.of(
-                                                            context,
-                                                          ).brightness ==
-                                                          Brightness.light
-                                                      ? Colors.black
-                                                            .withOpacity(0.08)
-                                                      : Colors.white
-                                                            .withOpacity(0.12),
-                                                ),
-                                              ),
-                                              child: Column(
-                                                children: [
-                                                  Text(
-                                                    word['arabic'] ?? '',
-                                                    style: TextStyle(
-                                                      fontFamily: arabicFont,
-                                                      fontSize:
-                                                          size.width * .047,
-                                                      height: 0,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).colorScheme.onSurface,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  if (settings
-                                                          .showWbwTransliteration &&
-                                                      word['transliteration'] !=
-                                                          null &&
-                                                      word['transliteration']
-                                                          .toString()
-                                                          .isNotEmpty) ...[
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      word['transliteration'],
-                                                      style: TextStyle(
-                                                        fontSize:
-                                                            settings.fontSize *
-                                                            0.55,
-                                                        fontStyle:
-                                                            FontStyle.italic,
-                                                        color: Theme.of(
-                                                          context,
-                                                        ).colorScheme.tertiary,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                  Text(
-                                                    word['translation'] ?? '',
-                                                    style: TextStyle(
-                                                      fontSize:
-                                                          settings.fontSize *
-                                                          0.6,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).colorScheme.secondary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
+                    if (index == _ayahs.length + 1) {
+                      return const SizedBox(height: 120);
+                    }
+
+                    final ayahIndex = index - 1;
+                    final ayah = _ayahs[ayahIndex];
+                    final isPlaying =
+                        _playingAyahId != null &&
+                        ayah['number'] == widget.surah['number'] &&
+                        ayah['numberInSurah'] == _playingAyahId;
+
+                    // Handle Basmala stripping
+                    String rawText = ayah['text'] ?? '';
+                    String displayText =
+                        (ayahIndex == 0 && widget.surah['number'] != 1)
+                        ? _removeBasmala(rawText)
+                        : rawText;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: InkWell(
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                        borderRadius: BorderRadius.circular(45),
+                        onLongPress: () {
+                          _addToBookmark(
+                            widget.surah['number'],
+                            ayah['numberInSurah'],
+                          );
+                        },
+                        onTap: () => _playAyah(ayah['numberInSurah']),
+                        child: Card(
+                          semanticContainer: false,
+                          surfaceTintColor:
+                              Colors.transparent, // Removes M3 elevation tint
+                          color: isPlaying
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.12)
+                              : Theme.of(context).brightness == Brightness.light
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.07)
+                              : Colors.white.withAlpha(15),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(45),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(21.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      width: size.width * 0.079,
+                                      height: size.width * 0.071,
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(
+                                          100,
                                         ),
-                                      ],
-                                      if (!_isReadingMode)
-                                        const SizedBox(height: 11),
-
-                                      // TRANSLATION
-                                      if (!_isReadingMode &&
-                                          ayah['translation'] != null) ...[
-                                        const SizedBox(height: 11),
-                                        Text(
-                                          ayah['translation'],
-                                          textAlign: TextAlign.left,
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.light
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.1)
+                                            : Colors.white.withAlpha(15),
+                                        border: Border.all(
+                                          width: 1,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withOpacity(0.1),
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${ayah['numberInSurah']}',
                                           style: TextStyle(
-                                            fontSize: settings.fontSize - 4,
-                                            // fontSize: settings.fontSize * 0.75,
+                                            fontSize: 12,
+                                            height: 0,
+                                            fontWeight: FontWeight.bold,
                                             color: Theme.of(
                                               context,
-                                            ).textTheme.bodyLarge?.color,
-                                            fontWeight: FontWeight.normal,
+                                            ).colorScheme.onPrimaryContainer,
                                           ),
                                         ),
-                                      ],
-
-                                      // TAFSEER
-                                      if (!_isReadingMode &&
-                                          settings.showTafseer &&
-                                          ayah['tafseer'] != null) ...[
-                                        const SizedBox(height: 12),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              ayah['isTafseerExpanded'] =
-                                                  !(ayah['isTafseerExpanded'] ??
-                                                      false);
-                                            });
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(17),
-                                            decoration: BoxDecoration(
+                                      ),
+                                    ),
+                                    if (!settings.isReadingMode &&
+                                        _isAudioDownloaded)
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          _playAyah(ayah['numberInSurah']);
+                                        },
+                                        icon: Icon(
+                                          isPlaying
+                                              ? CupertinoIcons.pause
+                                              : CupertinoIcons.play_arrow,
+                                          size: 15,
+                                          color:
+                                              Theme.of(context).brightness ==
+                                                  Brightness.light
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                        label: Text(
+                                          isPlaying ? "Stop" : "Play",
+                                          style: TextStyle(
+                                            height: 1.0,
+                                            fontSize: 13,
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                    Brightness.light
+                                                ? Colors.black
+                                                : Colors.white,
+                                          ),
+                                        ),
+                                        style: TextButton.styleFrom(
+                                          backgroundColor:
+                                              Theme.of(context).brightness ==
+                                                  Brightness.light
+                                              ? Colors.black.withOpacity(0.04)
+                                              : Colors.white.withOpacity(0.08),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              100,
+                                            ),
+                                            side: BorderSide(
+                                              width: .5,
                                               color:
                                                   Theme.of(
                                                         context,
                                                       ).brightness ==
                                                       Brightness.light
                                                   ? Colors.black.withOpacity(
-                                                      0.04,
+                                                      0.15,
                                                     )
                                                   : Colors.white.withOpacity(
-                                                      0.07,
+                                                      0.15,
                                                     ),
-                                              borderRadius:
-                                                  BorderRadius.circular(17),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Tafseer:',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                (ayah['isTafseerExpanded'] ==
-                                                        true)
-                                                    ? HtmlWidget(
-                                                        ayah['tafseer'],
-                                                        textStyle: TextStyle(
-                                                          fontSize:
-                                                              settings
-                                                                  .fontSize *
-                                                              0.75,
-                                                        ),
-                                                      )
-                                                    : Text(
-                                                        ayah['tafseerSnippet'] ??
-                                                            '',
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                          fontSize:
-                                                              settings
-                                                                  .fontSize *
-                                                              0.75,
-                                                          fontStyle:
-                                                              FontStyle.italic,
-                                                        ),
-                                                      ),
-                                              ],
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ],
-                                  ),
+                                      ),
+                                  ],
                                 ),
-                              ),
+                                const SizedBox(height: 11),
+                                settings.enableTajweed
+                                    ? RichText(
+                                        textAlign: TextAlign.right,
+                                        textDirection: TextDirection.rtl,
+                                        text: TextSpan(
+                                          children:
+                                              TajweedRenderer.getTajweedSpans(
+                                                displayText.replaceAllMapped(
+                                                  RegExp(r'([\u06D6-\u06DC])'),
+                                                  (match) =>
+                                                      '   ${match.group(0)} ',
+                                                ),
+                                                TextStyle(
+                                                  fontFamily: arabicFont,
+                                                  fontSize:
+                                                      settings.arabicFontSize,
+                                                  height: 1.8,
+                                                  wordSpacing: 0,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.onSurface,
+                                                ),
+                                                isIndopak:
+                                                    arabicFont ==
+                                                    'qalammajeed3',
+                                              ),
+                                        ),
+                                      )
+                                    : Text(
+                                        displayText.replaceAllMapped(
+                                          RegExp(r'([\u06D6-\u06DC])'),
+                                          (match) => '      ${match.group(0)} ',
+                                        ),
+                                        textAlign: TextAlign.right,
+                                        textDirection: TextDirection.rtl,
+                                        style: TextStyle(
+                                          fontFamily: arabicFont,
+                                          fontSize: settings.arabicFontSize,
+                                          height: 1.8,
+                                          wordSpacing: 0,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                if (settings.pronunciation != 'none' &&
+                                    ayah['pronunciation'] != null) ...[
+                                  const SizedBox(height: 8),
+                                  if (settings.pronunciation == 'latin_english')
+                                    HtmlWidget(
+                                      '<div style="text-align: end;">${ayah['pronunciation']}</div>',
+                                      textStyle: TextStyle(
+                                        fontSize:
+                                            settings.translationFontSize * 0.75,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    )
+                                  else
+                                    Text(
+                                      _decodeLatin(ayah['pronunciation']),
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize:
+                                            settings.translationFontSize * 0.75,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontStyle: FontStyle.italic,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                ],
+                                const SizedBox(height: 11),
+                                if (!settings.isReadingMode &&
+                                    settings.showWordByWord &&
+                                    ayah['words'] != null) ...[
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    alignment: WrapAlignment.start,
+                                    direction: Axis.horizontal,
+                                    textDirection: TextDirection.rtl,
+                                    runAlignment: WrapAlignment.start,
+                                    runSpacing: 7,
+                                    spacing: 7,
+                                    children: (ayah['words'] as List).map((
+                                      word,
+                                    ) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 11,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              Theme.of(context).brightness ==
+                                                  Brightness.light
+                                              ? Colors.black.withOpacity(0.04)
+                                              : Colors.white.withOpacity(0.07),
+                                          borderRadius: BorderRadius.circular(
+                                            19,
+                                          ),
+                                          border: Border.all(
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                    Brightness.light
+                                                ? Colors.black.withOpacity(0.08)
+                                                : Colors.white.withOpacity(
+                                                    0.12,
+                                                  ),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              word['arabic'] ?? '',
+                                              style: TextStyle(
+                                                fontFamily: arabicFont,
+                                                fontSize: size.width * .047,
+                                                height: 0,
+                                                fontWeight: FontWeight.w900,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            if (settings
+                                                    .showWbwTransliteration &&
+                                                word['transliteration'] !=
+                                                    null &&
+                                                word['transliteration']
+                                                    .toString()
+                                                    .isNotEmpty) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                word['transliteration'],
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      settings
+                                                          .translationFontSize *
+                                                      0.55,
+                                                  fontStyle: FontStyle.italic,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.tertiary,
+                                                ),
+                                              ),
+                                            ],
+                                            Text(
+                                              word['translation'] ?? '',
+                                              style: TextStyle(
+                                                fontSize:
+                                                    settings
+                                                        .translationFontSize *
+                                                    0.6,
+                                                fontWeight: FontWeight.w500,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.secondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                                if (!settings.isReadingMode)
+                                  const SizedBox(height: 11),
+                                if (!settings.isReadingMode &&
+                                    ayah['translation'] != null) ...[
+                                  const SizedBox(height: 11),
+                                  Text(
+                                    ayah['translation'],
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                      fontSize: settings.translationFontSize,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                                if (!settings.isReadingMode &&
+                                    settings.showTafseer &&
+                                    ayah['tafseer'] != null) ...[
+                                  const SizedBox(height: 12),
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        ayah['isTafseerExpanded'] =
+                                            !(ayah['isTafseerExpanded'] ??
+                                                false);
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(17),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.light
+                                            ? Colors.black.withOpacity(0.04)
+                                            : Colors.white.withOpacity(0.07),
+                                        borderRadius: BorderRadius.circular(17),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Tafseer:',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          (ayah['isTafseerExpanded'] == true)
+                                              ? HtmlWidget(
+                                                  ayah['tafseer'],
+                                                  textStyle: TextStyle(
+                                                    fontSize:
+                                                        settings
+                                                            .translationFontSize *
+                                                        0.75,
+                                                  ),
+                                                )
+                                              : Text(
+                                                  ayah['tafseerSnippet'] ?? '',
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        settings
+                                                            .translationFontSize *
+                                                        0.75,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
         );
       },
