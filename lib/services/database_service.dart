@@ -764,7 +764,6 @@ class DatabaseService {
         columns: ['sura', 'aya', 'text'],
         where: 'LOWER(text) LIKE ?',
         whereArgs: ['%${query.toLowerCase()}%'],
-        limit: 50,
       );
 
       List<Map<String, dynamic>> mappedResults = [];

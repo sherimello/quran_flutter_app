@@ -93,7 +93,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
 
     try {
       // Use smart search (semantic if available, else keyword)
-      final results = await _searchService.search(query, maxResults: 30);
+      final results = await _searchService.search(query, maxResults: 9999);
 
       if (mounted) {
         setState(() {
@@ -310,7 +310,16 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
       itemCount: _results.length,
       itemBuilder: (context, index) {
         final result = _results[index];
-        return _buildResultCard(result);
+        return index == 0? Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 11,
+          children: [
+            Text("${_results.length.toString()} results found:"),
+            _buildResultCard(result),
+          ],
+        ):
+          _buildResultCard(result);
       },
     );
   }
@@ -322,7 +331,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
       color: Theme.of(context).brightness == Brightness.light
           ? Theme.of(context).colorScheme.primary.withOpacity(0.07)
           : Colors.white.withAlpha(15),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(31)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => _navigateToVerse(result.surah, result.ayah),
@@ -341,7 +350,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(31),
                     ),
                     child: Text(
                       result.verseKey,
@@ -352,32 +361,32 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? Colors.black.withOpacity(0.05)
-                          : Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${(result.similarity * 100).toStringAsFixed(0)}% match',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  // Container(
+                  //   padding: const EdgeInsets.symmetric(
+                  //     horizontal: 8,
+                  //     vertical: 4,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: Theme.of(context).brightness == Brightness.light
+                  //         ? Colors.black.withOpacity(0.05)
+                  //         : Colors.white.withOpacity(0.1),
+                  //     borderRadius: BorderRadius.circular(12),
+                  //   ),
+                  //   child: Text(
+                  //     '${(result.similarity * 100).toStringAsFixed(0)}% match',
+                  //     style: TextStyle(
+                  //       fontSize: 11,
+                  //       color: Theme.of(context).colorScheme.primary,
+                  //       fontWeight: FontWeight.w600,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
               const SizedBox(height: 12),
               HtmlWidget(
                 result.snippet,
-                textStyle: const TextStyle(height: 1.6, fontSize: 14),
+                textStyle: const TextStyle(height: 0, fontSize: 14,),
                 // maxLines: 4,
                 // overflow: TextOverflow.ellipsis,
               ),
@@ -394,6 +403,7 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                     'Tap to view full verse',
                     style: TextStyle(
                       fontSize: 12,
+                      height: 0,
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w500,
                     ),

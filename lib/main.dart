@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
 
           // --- DARK THEME UPDATE ---
           darkTheme: ThemeData(
-            useMaterial3: false,
+            useMaterial3: true,
             brightness: Brightness.dark,
             scaffoldBackgroundColor: Colors.black,
             // DARK THEME COLOR SCHEME

@@ -16,17 +16,26 @@ class OnnxBertService {
   OrtSessionOptions? _sessionOptions;
   BertTokenizer? _tokenizer;
   bool _isLoaded = false;
-  bool _isLoading = false;
 
   bool get isLoaded => _isLoaded;
+
+  Future<bool>? _initFuture;
 
   /// Initialize the ONNX model and tokenizer
   Future<bool> initialize() async {
     if (_isLoaded) return true;
-    if (_isLoading) return false;
+    
+    if (_initFuture != null) {
+      return await _initFuture!;
+    }
 
-    _isLoading = true;
+    _initFuture = _doInitialize();
+    final result = await _initFuture!;
+    _initFuture = null;
+    return result;
+  }
 
+  Future<bool> _doInitialize() async {
     try {
       // Initialize ONNX Runtime environment
       OrtEnv.instance.init();
@@ -45,12 +54,10 @@ class OnnxBertService {
       await _tokenizer!.loadTokenizer();
 
       _isLoaded = true;
-      _isLoading = false;
       print('ONNX BERT model loaded successfully');
       return true;
     } catch (e) {
       print('Error loading ONNX model: $e');
-      _isLoading = false;
       return false;
     }
   }
@@ -115,23 +122,20 @@ class OnnxBertService {
 
       List<double>? embedding;
 
-      if (outputValue is List) {
-        // Handle 3D output: [batch, sequence, hidden_size]
-        // Need to do mean pooling
-        if (outputValue.isNotEmpty && outputValue[0] is List) {
-          final sequenceOutput = outputValue[0] as List;
-          if (sequenceOutput.isNotEmpty && sequenceOutput[0] is List) {
-            // 3D: mean pool over sequence dimension
-            embedding = _meanPooling3D(
-              sequenceOutput as List<List>,
-              attentionMask,
-            );
-          } else {
-            // 2D: already pooled
-            embedding = (sequenceOutput as List)
-                .map((e) => (e as num).toDouble())
-                .toList();
-          }
+      if (outputValue is List && outputValue.isNotEmpty) {
+        final first = outputValue[0];
+        if (first is List && first.isNotEmpty && first[0] is List) {
+          // 3D: [batch=1, seq_len, hidden_size] - mean pool over sequence
+          final seqList = (first as List)
+              .map((row) => (row as List).map((v) => (v as num).toDouble()).toList())
+              .toList();
+          embedding = _meanPooling3D(seqList, attentionMask);
+        } else if (first is List) {
+          // 2D: [batch=1, hidden_size] - already pooled
+          embedding = first.map((e) => (e as num).toDouble()).toList();
+        } else if (outputValue[0] is num) {
+          // 1D flat list (rare)
+          embedding = outputValue.map((e) => (e as num).toDouble()).toList();
         }
       }
 

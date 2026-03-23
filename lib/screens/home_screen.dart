@@ -18,6 +18,8 @@ import 'settings_screen.dart';
 import 'surah_detail_screen.dart';
 import 'juz_detail_screen.dart';
 import 'contextual_search_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../widgets/update_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +51,46 @@ class _HomeScreenState extends State<HomeScreen>
     _fetchSurahs();
     _searchController.addListener(_onSearchChanged);
     _syncBookmarks();
+    _checkForUpdates();
+  }
+
+  Future<void> _checkForUpdates() async {
+    final updateInfo = await SupabaseService().checkForUpdates();
+    if (updateInfo != null && mounted) {
+      final remoteVersion = updateInfo['version_code'] as String?;
+      final downloadLink = updateInfo['download_link'] as String?;
+      if (remoteVersion == null || downloadLink == null) return;
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      if (_isNewerVersion(currentVersion, remoteVersion)) {
+        showDialog(
+          context: context,
+          builder: (context) => UpdateDialog(
+            version: remoteVersion,
+            changelog: updateInfo['changelog'] ?? 'No changelog provided.',
+            downloadUrl: downloadLink,
+          ),
+        );
+      }
+    }
+  }
+
+  bool _isNewerVersion(String current, String remote) {
+    try {
+      final currentParts = current.split('.').map(int.parse).toList();
+      final remoteParts = remote.split('.').map(int.parse).toList();
+      for (int i = 0; i < 3; i++) {
+        final c = i < currentParts.length ? currentParts[i] : 0;
+        final r = i < remoteParts.length ? remoteParts[i] : 0;
+        if (r > c) return true;
+        if (r < c) return false;
+      }
+      return false;
+    } catch (_) {
+      return remote != current;
+    }
   }
 
   Future<void> _syncBookmarks() async {

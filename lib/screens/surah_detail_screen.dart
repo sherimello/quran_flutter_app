@@ -11,6 +11,7 @@ import '../services/audio_service.dart';
 import '../services/supabase_service.dart';
 import '../services/tajweed_service.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/auto_hide_scrollbar.dart';
 import 'settings_screen.dart';
 
 class SurahDetailScreen extends StatefulWidget {
@@ -754,7 +755,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     ),
                   ),
                 )
-              : ScrollablePositionedList.builder(
+              : AutoHideScrollbar(
+                  itemPositionsListener: _itemPositionsListener,
+                  itemScrollController: _itemScrollController,
+                  totalItems: _ayahs.length + 2,
+                  child: ScrollablePositionedList.builder(
                   physics: const BouncingScrollPhysics(),
                   itemScrollController: _itemScrollController,
                   itemPositionsListener: _itemPositionsListener,
@@ -1266,7 +1271,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     );
                   },
                 ),
-        );
+              ),
+            );
       },
     );
   }

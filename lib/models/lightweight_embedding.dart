@@ -53,30 +53,34 @@ class EmbeddingLoader {
     print('Loading binary embeddings: Count=$count, Dim=$dim');
 
     final embeddings = <LightweightEmbedding>[];
-    embeddings.length = count; // Pre-allocate
 
     for (int i = 0; i < count; i++) {
-      final id = view.getUint16(offset, Endian.little);
-      offset += 2;
+      try {
+        final id = view.getUint16(offset, Endian.little);
+        offset += 2;
 
-      final surah = view.getUint8(offset);
-      offset += 1;
+        final surah = view.getUint8(offset);
+        offset += 1;
 
-      final ayah = view.getUint16(offset, Endian.little);
-      offset += 2;
+        final ayah = view.getUint16(offset, Endian.little);
+        offset += 2;
 
-      final vector = List<double>.filled(dim, 0.0);
-      for (int j = 0; j < dim; j++) {
-        vector[j] = view.getFloat32(offset, Endian.little);
-        offset += 4;
+        final vector = List<double>.filled(dim, 0.0);
+        for (int j = 0; j < dim; j++) {
+          vector[j] = view.getFloat32(offset, Endian.little);
+          offset += 4;
+        }
+
+        embeddings.add(LightweightEmbedding(
+          id: id,
+          surah: surah,
+          ayah: ayah,
+          embedding: vector,
+        ));
+      } catch (e) {
+        // Skip malformed entry — advance offset past one record
+        offset += 5 + (dim * 4);
       }
-
-      embeddings[i] = LightweightEmbedding(
-        id: id,
-        surah: surah,
-        ayah: ayah,
-        embedding: vector,
-      );
     }
 
     return embeddings;

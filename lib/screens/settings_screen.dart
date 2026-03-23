@@ -16,64 +16,77 @@ class SettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text(
-                'Appearance',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: const Text('Theme'),
-                trailing: DropdownButton<ThemeMode>(
-                  value: settings.themeMode,
-                  onChanged: (ThemeMode? newMode) {
-                    if (newMode != null) {
-                      settings.setThemeMode(newMode);
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(
-                      value: ThemeMode.system,
-                      child: Text('System'),
+              Container(
+                padding: EdgeInsets.all(19),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(35),
+                  color: ThemeData().colorScheme.surface.withAlpha(21),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Appearance',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    DropdownMenuItem(
-                      value: ThemeMode.light,
-                      child: Text('Light'),
+                    const SizedBox(height: 0),
+                    ListTile(
+                      title: const Text('Theme'),
+                      trailing: DropdownButton<ThemeMode>(
+                        value: settings.themeMode,
+                        onChanged: (ThemeMode? newMode) {
+                          if (newMode != null) {
+                            settings.setThemeMode(newMode);
+                          }
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: ThemeMode.system,
+                            child: Text('System'),
+                          ),
+                          DropdownMenuItem(
+                            value: ThemeMode.light,
+                            child: Text('Light'),
+                          ),
+                          DropdownMenuItem(
+                            value: ThemeMode.dark,
+                            child: Text('Dark'),
+                          ),
+                        ],
+                      ),
                     ),
-                    DropdownMenuItem(
-                      value: ThemeMode.dark,
-                      child: Text('Dark'),
+                    // const Divider(),
+                    const SizedBox(height: 0),
+                    const Text(
+                      'Reading',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Arabic Font Size (${settings.arabicFontSize.round().toString()} px)'),
+                    Slider(
+                      value: settings.arabicFontSize,
+                      min: 20.0,
+                      max: 50.0,
+                      divisions: 30,
+                      label: settings.arabicFontSize.round().toString(),
+                      onChanged: (double value) {
+                        settings.setArabicFontSize(value);
+                      },
+                    ),
+                    Text('Translation Font Size (${settings.translationFontSize.round().toString()} px)'),
+                    Slider(
+                      value: settings.translationFontSize,
+                      min: 12.0,
+                      max: 30.0,
+                      divisions: 18,
+                      label: settings.translationFontSize.round().toString(),
+                      onChanged: (double value) {
+                        settings.setTranslationFontSize(value);
+                      },
                     ),
                   ],
                 ),
-              ),
-              const Divider(),
-              const SizedBox(height: 16),
-              const Text(
-                'Reading',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              const Text('Arabic Font Size'),
-              Slider(
-                value: settings.arabicFontSize,
-                min: 20.0,
-                max: 50.0,
-                divisions: 30,
-                label: settings.arabicFontSize.round().toString(),
-                onChanged: (double value) {
-                  settings.setArabicFontSize(value);
-                },
-              ),
-              const Text('Translation Font Size'),
-              Slider(
-                value: settings.translationFontSize,
-                min: 12.0,
-                max: 30.0,
-                divisions: 18,
-                label: settings.translationFontSize.round().toString(),
-                onChanged: (double value) {
-                  settings.setTranslationFontSize(value);
-                },
               ),
               const SizedBox(height: 16),
               Column(
@@ -103,72 +116,85 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const Divider(),
+              // const Divider(),
               const SizedBox(height: 16),
-              const Text(
-                'Quran Display',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: const Text('Arabic Script'),
-                subtitle: const Text('Choose Arabic text style'),
-                trailing: DropdownButton<String>(
-                  value: settings.arabicScript,
-                  onChanged: (String? value) {
-                    if (value != null) {
-                      settings.setArabicScript(value);
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(value: 'indopak', child: Text('Indopak')),
-                    DropdownMenuItem(value: 'utsmani', child: Text('Uthmani')),
+              Container(
+                padding: EdgeInsets.all(19),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(35),
+                  color: ThemeData().colorScheme.surface.withAlpha(21),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quran Display',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      title: const Text('Arabic Script'),
+                      subtitle: const Text('Choose Arabic text style'),
+                      trailing: DropdownButton<String>(
+                        value: settings.arabicScript,
+                        onChanged: (String? value) {
+                          if (value != null) {
+                            settings.setArabicScript(value);
+                          }
+                        },
+                        items: const [
+                          DropdownMenuItem(value: 'indopak', child: Text('Indopak')),
+                          DropdownMenuItem(value: 'utsmani', child: Text('Uthmani')),
+                        ],
+                      ),
+                    ),
+                    ListTile(
+                      title: const Text('Translation'),
+                      subtitle: const Text('Choose translation language'),
+                      trailing: DropdownButton<String>(
+                        value: settings.translation,
+                        onChanged: (String? value) {
+                          if (value != null) {
+                            settings.setTranslation(value);
+                          }
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'sahih',
+                            child: Text('Sahih International'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'jalalayn',
+                            child: Text('Jalalayn'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ListTile(
+                      title: const Text('Pronunciation'),
+                      subtitle: const Text('Show transliteration'),
+                      trailing: DropdownButton<String>(
+                        value: settings.pronunciation,
+                        onChanged: (String? value) {
+                          if (value != null) {
+                            settings.setPronunciation(value);
+                          }
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'latin_english',
+                            child: Text('Latin English'),
+                          ),
+                          DropdownMenuItem(value: 'latin', child: Text('Latin')),
+                          DropdownMenuItem(value: 'none', child: Text('None')),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              ListTile(
-                title: const Text('Translation'),
-                subtitle: const Text('Choose translation language'),
-                trailing: DropdownButton<String>(
-                  value: settings.translation,
-                  onChanged: (String? value) {
-                    if (value != null) {
-                      settings.setTranslation(value);
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'sahih',
-                      child: Text('Sahih International'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'jalalayn',
-                      child: Text('Jalalayn'),
-                    ),
-                  ],
-                ),
-              ),
-              ListTile(
-                title: const Text('Pronunciation'),
-                subtitle: const Text('Show transliteration'),
-                trailing: DropdownButton<String>(
-                  value: settings.pronunciation,
-                  onChanged: (String? value) {
-                    if (value != null) {
-                      settings.setPronunciation(value);
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'latin_english',
-                      child: Text('Latin English'),
-                    ),
-                    DropdownMenuItem(value: 'latin', child: Text('Latin')),
-                    DropdownMenuItem(value: 'none', child: Text('None')),
-                  ],
-                ),
-              ),
-              const Divider(),
+              // const Divider(),
               const SizedBox(height: 16),
               const Text(
                 'Advanced Features',
@@ -277,7 +303,7 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              const Divider(),
+              // const Divider(),
               ListTile(
                 leading: const Icon(Icons.widgets),
                 title: const Text('Home Screen Widget'),

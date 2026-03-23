@@ -188,4 +188,22 @@ class SupabaseService {
     final localBookmarks = await DatabaseService().getAllBookmarks();
     return {'totalBookmarks': localBookmarks.length};
   }
+
+  Future<Map<String, dynamic>?> checkForUpdates() async {
+    try {
+      final response = await _client
+          .from('app_updates')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if ((response as List).isNotEmpty) {
+        return response.first;
+      }
+
+    } catch (e) {
+      print('Failed to check for updates: $e');
+    }
+    return null;
+  }
 }

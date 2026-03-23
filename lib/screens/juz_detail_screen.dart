@@ -11,6 +11,7 @@ import '../services/supabase_service.dart';
 import '../providers/settings_provider.dart';
 import '../data/juz_data.dart';
 import '../services/tajweed_service.dart';
+import '../widgets/auto_hide_scrollbar.dart';
 import 'settings_screen.dart';
 
 class JuzDetailScreen extends StatefulWidget {
@@ -704,7 +705,11 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
           ),
           body: _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : ScrollablePositionedList.builder(
+              : AutoHideScrollbar(
+                  itemPositionsListener: _itemPositionsListener,
+                  itemScrollController: _itemScrollController,
+                  totalItems: _ayahs.length,
+                  child: ScrollablePositionedList.builder(
                   physics: const BouncingScrollPhysics(),
                   itemScrollController: _itemScrollController,
                   itemPositionsListener: _itemPositionsListener,
@@ -839,6 +844,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                     );
                   },
                 ),
+              ),
         );
       },
     );

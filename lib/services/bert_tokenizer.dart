@@ -102,7 +102,7 @@ class BertTokenizer {
     }
     
     // Create attention mask
-    List<int> attentionMask = List.filled(inputIds.length, 1);
+    List<int> attentionMask = List.filled(inputIds.length, 1, growable: true);
     
     // Pad to maxLength
     final padLength = maxLength - inputIds.length;

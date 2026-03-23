@@ -54,7 +54,7 @@ class SemanticSearchService {
   Future<List<SearchResult>> search(
     String query, {
     int maxResults = 20,
-    double minSimilarity = 0.15,
+    double minSimilarity = 0.50,
   }) async {
     if (!_isLoaded) {
       await loadEmbeddings();
