@@ -1,6 +1,9 @@
 import 'dart:developer';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../services/supabase_service.dart';
 import 'home_screen.dart';
 
@@ -122,9 +125,11 @@ class _AuthScreenState extends State<AuthScreen>
   Widget build(BuildContext context) {
     // Determine if we are in Register mode
     final isRegistering = _tabController.index == 1;
+    var size = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: AppBar().preferredSize.height * 1.5,
         title: Row(
           children: [
             GestureDetector(
@@ -137,14 +142,13 @@ class _AuthScreenState extends State<AuthScreen>
               ), // Removed hardcoded white color for better theme adaptation
             ),
             const SizedBox(width: 17),
-            const Text('Account'),
-          ],
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Login'),
-            Tab(text: 'Register'),
+            Text(
+              'Account',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: size.width * .041,
+              ),
+            ),
           ],
         ),
         automaticallyImplyLeading: false,
@@ -155,55 +159,160 @@ class _AuthScreenState extends State<AuthScreen>
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              const SizedBox(height: 32),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+              ClipRRect(
+                borderRadius:  BorderRadius.circular(1000),
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  controller: _tabController,
+                  padding: EdgeInsets.all(21),
+                  dividerHeight: 0,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(100),
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  splashBorderRadius:  BorderRadius.circular(1000),
+                  labelStyle: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
+                    fontSize: size.width * .037,
+                    color: const Color(0xff34da15),
+                  ),
+                  tabs: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(1000),
+                      child: const Tab(text: 'Login'),
+                    ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(1000),
+                      child: Tab(text: 'Register'),
+                    ),
+                  ],
                 ),
-                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 11),
+                decoration: BoxDecoration(
+                  color: const Color(0xff34da15).withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Center(
+                  child: TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      // labelText: 'Email',
+                      hintText: 'Email',
+                      hintStyle: GoogleFonts.poppins(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: .55),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        height: 0,
+                      ),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        CupertinoIcons.mail_solid,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 21),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 11),
+                decoration: BoxDecoration(
+                  color: const Color(0xff34da15).withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(100),
                 ),
-                obscureText: true,
+                child: Center(
+                  child: TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      // labelText: 'Email',
+                      hintText: 'Password',
+                      hintStyle: GoogleFonts.poppins(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: .55),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        height: 0,
+                      ),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        CupertinoIcons.lock_fill,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 21),
+                    ),
+                    obscureText: true,
+                  ),
+                ),
               ),
 
               // Animated Switcher or Conditional UI for Confirm Password
               if (isRegistering) ...[
                 const SizedBox(height: 16),
-                TextField(
-                  controller:
-                      _confirmPasswordController, // Use separate controller
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 11),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff34da15).withValues(alpha: 0.11),
+                    borderRadius: BorderRadius.circular(100),
                   ),
-                  obscureText: true,
+                  child: TextField(
+                    controller:
+                        _confirmPasswordController, // Use separate controller
+                    decoration: InputDecoration(
+                      hintText: 'Confirm Password',
+                      hintStyle: GoogleFonts.poppins(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: .55),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        height: 0,
+                      ),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.lock_outline),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 21),
+                    ),
+                    obscureText: true,
+                  ),
                 ),
               ],
 
               const SizedBox(height: 32),
               SizedBox(
-                width: double.infinity,
-                height: 50,
+                // width: double.infinity,
+                height: AppBar().preferredSize.height * .87,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.all(
+                      const Color(0xff34da15),
+                    ),
+                  ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         )
-                      : Text(isRegistering ? 'Register' : 'Login'),
+                      : Text(
+                          isRegistering ? 'Register' : 'Login',
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
             ],

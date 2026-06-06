@@ -3,10 +3,48 @@ import 'package:path/path.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 
+const _sajdaVerses = {
+  '7:206', '13:15', '16:50', '17:109', '19:58',
+  '22:18', '22:77', '25:60', '27:26', '32:15',
+  '38:24', '41:38', '53:62', '84:21', '96:19',
+};
+
+const _revelationTypes = {
+  1: 'Meccan', 2: 'Medinan', 3: 'Medinan', 4: 'Medinan', 5: 'Medinan',
+  6: 'Meccan', 7: 'Meccan', 8: 'Medinan', 9: 'Medinan', 10: 'Meccan',
+  11: 'Meccan', 12: 'Meccan', 13: 'Medinan', 14: 'Meccan', 15: 'Meccan',
+  16: 'Meccan', 17: 'Meccan', 18: 'Meccan', 19: 'Meccan', 20: 'Meccan',
+  21: 'Meccan', 22: 'Medinan', 23: 'Meccan', 24: 'Medinan', 25: 'Meccan',
+  26: 'Meccan', 27: 'Meccan', 28: 'Meccan', 29: 'Meccan', 30: 'Meccan',
+  31: 'Meccan', 32: 'Meccan', 33: 'Medinan', 34: 'Meccan', 35: 'Meccan',
+  36: 'Meccan', 37: 'Meccan', 38: 'Meccan', 39: 'Meccan', 40: 'Meccan',
+  41: 'Meccan', 42: 'Meccan', 43: 'Meccan', 44: 'Meccan', 45: 'Meccan',
+  46: 'Meccan', 47: 'Medinan', 48: 'Medinan', 49: 'Medinan', 50: 'Meccan',
+  51: 'Meccan', 52: 'Meccan', 53: 'Meccan', 54: 'Meccan', 55: 'Medinan',
+  56: 'Meccan', 57: 'Medinan', 58: 'Medinan', 59: 'Medinan', 60: 'Medinan',
+  61: 'Medinan', 62: 'Medinan', 63: 'Medinan', 64: 'Medinan', 65: 'Medinan',
+  66: 'Medinan', 67: 'Meccan', 68: 'Meccan', 69: 'Meccan', 70: 'Meccan',
+  71: 'Meccan', 72: 'Meccan', 73: 'Meccan', 74: 'Meccan', 75: 'Meccan',
+  76: 'Medinan', 77: 'Meccan', 78: 'Meccan', 79: 'Meccan', 80: 'Meccan',
+  81: 'Meccan', 82: 'Meccan', 83: 'Meccan', 84: 'Meccan', 85: 'Meccan',
+  86: 'Meccan', 87: 'Meccan', 88: 'Meccan', 89: 'Meccan', 90: 'Meccan',
+  91: 'Meccan', 92: 'Meccan', 93: 'Meccan', 94: 'Meccan', 95: 'Meccan',
+  96: 'Meccan', 97: 'Meccan', 98: 'Medinan', 99: 'Meccan', 100: 'Meccan',
+  101: 'Meccan', 102: 'Meccan', 103: 'Meccan', 104: 'Meccan', 105: 'Meccan',
+  106: 'Meccan', 107: 'Meccan', 108: 'Meccan', 109: 'Meccan', 110: 'Medinan',
+  111: 'Meccan', 112: 'Meccan', 113: 'Meccan', 114: 'Meccan',
+};
+
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService() => _instance;
   DatabaseService._internal();
+
+  static String revelationType(int surahNumber) =>
+      _revelationTypes[surahNumber] ?? '';
+
+  static bool isSajdaVerse(int surah, int ayah) =>
+      _sajdaVerses.contains('$surah:$ayah');
 
   Database? _database;
   Database? _quranDatabase;
@@ -95,7 +133,19 @@ class DatabaseService {
       final db = await openDatabase(dbPath, readOnly: true);
       try {
         await db.rawQuery('SELECT 1 FROM sura_search_sura_search LIMIT 1');
-        await db.rawQuery('SELECT 1 FROM al_quran_indopak_quran LIMIT 1');
+
+        // Verify both Arabic script tables exist AND have data.
+        // SELECT 1 LIMIT 1 on an empty table returns [] without throwing,
+        // so we must check the result to catch partially-initialized DBs.
+        final indopakRows = await db.rawQuery(
+          'SELECT 1 FROM al_quran_indopak_quran LIMIT 1',
+        );
+        if (indopakRows.isEmpty) throw Exception('al_quran_indopak_quran empty');
+        final utsmaniRows = await db.rawQuery(
+          'SELECT 1 FROM al_quran_utsmani_quran LIMIT 1',
+        );
+        if (utsmaniRows.isEmpty) throw Exception('al_quran_utsmani_quran empty');
+
         await db.rawQuery('SELECT 1 FROM terjemahan_quran LIMIT 1');
         await db.rawQuery('SELECT 1 FROM allwords LIMIT 1');
         await db.rawQuery('SELECT 1 FROM corpus LIMIT 1');
@@ -172,7 +222,7 @@ class DatabaseService {
         'englishName': surah['english'],
         'englishNameTranslation': surah['english'],
         'numberOfAyahs': count,
-        'revelationType': '', // Not available in this DB
+        'revelationType': _revelationTypes[surah['no'] as int] ?? '',
       });
     }
 
@@ -207,7 +257,7 @@ class DatabaseService {
       'englishName': surah['english'],
       'englishNameTranslation': surah['english'],
       'numberOfAyahs': count,
-      'revelationType': '',
+      'revelationType': _revelationTypes[number] ?? '',
     };
   }
 
@@ -280,7 +330,7 @@ class DatabaseService {
       for (int i = 0; i < arabicResults.length; i++) {
         Map<String, dynamic> ayah = {
           'number': surahNumber, // Surah number (not global verse count)
-          'text': arabicResults[i]['text'],
+          'text': ((arabicResults[i]['text'] as String?) ?? '').replaceAll('﻿', ''),
           'numberInSurah': arabicResults[i]['aya'],
           'surahNumber': surahNumber,
           'surahName': surahName,
@@ -492,7 +542,7 @@ class DatabaseService {
           'englishName': surah['english'],
           'englishNameTranslation': surah['english'],
           'numberOfAyahs': count,
-          'revelationType': '',
+          'revelationType': _revelationTypes[surah['no'] as int] ?? '',
         });
       }
     }
@@ -731,24 +781,29 @@ class DatabaseService {
 
     try {
       final db = await tafseerDatabase;
-      // Use WHERE IN clause
-      final placeholders = List.filled(ids.length, '?').join(',');
-      final results = await db.query(
-        'tafseer',
-        columns: ['id', 'surah', 'ayah', 'verse_key', 'text'],
-        where: 'id IN ($placeholders)',
-        whereArgs: ids,
-      );
+      final combined = <int, Map<String, dynamic>>{};
 
-      return {
-        for (final row in results)
-          row['id'] as int: {
-            'text': row['text'],
-            'verse_key': row['verse_key'],
+      // SQLite limits bind variables per query; batch to stay well under that limit
+      const batchSize = 500;
+      for (int start = 0; start < ids.length; start += batchSize) {
+        final batch = ids.sublist(start, (start + batchSize).clamp(0, ids.length));
+        final placeholders = List.filled(batch.length, '?').join(',');
+        final rows = await db.query(
+          'tafseer',
+          columns: ['id', 'surah', 'ayah', 'verse_key', 'text'],
+          where: 'id IN ($placeholders)',
+          whereArgs: batch,
+        );
+        for (final row in rows) {
+          combined[row['id'] as int] = {
+            'text': row['text'] as String? ?? '',
+            'verse_key': row['verse_key'] as String? ?? '',
             'surah': row['surah'],
             'ayah': row['ayah'],
-          },
-      };
+          };
+        }
+      }
+      return combined;
     } catch (e) {
       print('Error fetching tafseer by IDs: $e');
       return {};

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/database_service.dart';
 import 'home_screen.dart';
 
@@ -85,7 +86,7 @@ class _SplashScreenState extends State<SplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // App Icon
-                Image.asset('assets/images/logo.png', width: 120, height: 120),
+                Image.asset('assets/images/logo_new.png', width: size.width * .17, height: size.width * .17),
                 // const SizedBox(height: 32),
                 // // Logo or App Name
                 // Text(
@@ -124,9 +125,10 @@ class _SplashScreenState extends State<SplashScreen> {
                   // const SizedBox(height: 8),
                   Text(
                     _status,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface),
+                    style: GoogleFonts.poppins(
+                        color: const Color(0xff000000),
+                      fontWeight: FontWeight.w700
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ] else ...[

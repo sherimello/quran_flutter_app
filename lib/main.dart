@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:home_widget/home_widget.dart';
@@ -14,7 +13,6 @@ Future<void> main() async {
     anonKey: 'sb_publishable_eMvOL9NuzHoyYb0KiseQyw_QEAQZqyb',
   );
 
-  // Initialize HomeWidget
   await HomeWidget.setAppGroupId('group.com.example.quran_flutter_app');
 
   runApp(
@@ -36,84 +34,117 @@ class MyApp extends StatelessWidget {
           title: "Qur'an",
           debugShowCheckedModeBanner: false,
           themeMode: settings.themeMode,
-          // --- LIGHT THEME UPDATE ---
+
+          // LIGHT THEME — neon green on pure white
           theme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
-            // LIGHT THEME COLOR SCHEME
             colorScheme: const ColorScheme(
               brightness: Brightness.light,
-              primary: Color(0xFF10B981),
-              onPrimary: Colors.white,
-              primaryContainer: Color(0xFFD1FAE5), // Light green, NOT purple
-              onPrimaryContainer: Color(0xFF065F46),
-              secondary: Color(0xFF059669),
-              onSecondary: Colors.white,
-              secondaryContainer: Color(0xFFECFDF5),
-              onSecondaryContainer: Color(0xFF064E3B),
-              tertiary: Color(
-                0xFF10B981,
-              ), // Overriding tertiary prevents random purple accents
-              onTertiary: Colors.white,
-              error: Colors.red,
+              primary: Color(0xFF39FF14),
+              onPrimary: Colors.black,
+              primaryContainer: Color(0xFFE6FFDF),
+              onPrimaryContainer: Color(0xFF003A00),
+              secondary: Color(0xFF2CC00F),
+              onSecondary: Colors.black,
+              secondaryContainer: Color(0xFFF0FFE8),
+              onSecondaryContainer: Color(0xFF002200),
+              tertiary: Color(0xFF39FF14),
+              onTertiary: Colors.black,
+              error: Color(0xFFD32F2F),
               onError: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
-              surfaceVariant: Colors.white, // Older versions of M3 use this
-              outline: Color(0xFFE5E7EB),
-              surfaceTint: Colors.transparent, // Crucial
+              outline: Color(0xFFE0E0E0),
+              outlineVariant: Color(0xFFF0F0F0),
+              surfaceTint: Colors.transparent,
             ),
-            // This removes the tint from all NavigationBars/BottomSheets specifically
             canvasColor: Colors.white,
             cardColor: Colors.white,
-
-            // Update your AppBarTheme to also ensure tint is gone
             appBarTheme: const AppBarTheme(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               iconTheme: IconThemeData(color: Colors.black),
             ),
-            // ... rest of your code
+            sliderTheme: const SliderThemeData(
+              activeTrackColor: Color(0xFF39FF14),
+              thumbColor: Color(0xFF39FF14),
+              inactiveTrackColor: Color(0xFFE0E0E0),
+              overlayColor: Color(0x1A39FF14),
+            ),
+            switchTheme: SwitchThemeData(
+              thumbColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.black;
+                }
+                return Colors.white;
+              }),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF39FF14);
+                }
+                return const Color(0xFFE0E0E0);
+              }),
+            ),
           ),
 
-          // --- DARK THEME UPDATE ---
+          // DARK THEME — neon green on pure black
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
             scaffoldBackgroundColor: Colors.black,
-            // DARK THEME COLOR SCHEME
             colorScheme: const ColorScheme(
               brightness: Brightness.dark,
-              primary: Color(0xFF10B981),
-              onPrimary: Colors.white,
-              primaryContainer: Color(0xFF065F46),
-              onPrimaryContainer: Color(0xFFD1FAE5),
-              secondary: Color(0xFF34D399),
+              primary: Color(0xFF39FF14),
+              onPrimary: Colors.black,
+              primaryContainer: Color(0xFF001A00),
+              onPrimaryContainer: Color(0xFF39FF14),
+              secondary: Color(0xFF57FF3A),
               onSecondary: Colors.black,
-              secondaryContainer: Color(0xFF064E3B),
-              onSecondaryContainer: Color(0xFFECFDF5),
-              tertiary: Color(0xFF34D399),
+              secondaryContainer: Color(0xFF002800),
+              onSecondaryContainer: Color(0xFFAAFF99),
+              tertiary: Color(0xFF39FF14),
               onTertiary: Colors.black,
-              error: Colors.red,
-              onError: Colors.white,
-              surface: Colors.black,
+              error: Color(0xFFFF6B6B),
+              onError: Colors.black,
+              surface: Color(0xFF0D0D0D),
               onSurface: Colors.white,
-              surfaceVariant: Colors.black,
-              outline: Color(0xFF374151),
-              surfaceTint: Colors.transparent, // Crucial
+              outline: Color(0xFF2A2A2A),
+              outlineVariant: Color(0xFF1A1A1A),
+              surfaceTint: Colors.transparent,
             ),
             canvasColor: Colors.black,
-            cardColor: Colors.black,
+            cardColor: const Color(0xFF111111),
             appBarTheme: const AppBarTheme(
               backgroundColor: Colors.black,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
               iconTheme: IconThemeData(color: Colors.white),
             ),
-            // ... rest of your code
+            sliderTheme: const SliderThemeData(
+              activeTrackColor: Color(0xFF39FF14),
+              thumbColor: Color(0xFF39FF14),
+              inactiveTrackColor: Color(0xFF2A2A2A),
+              overlayColor: Color(0x1A39FF14),
+            ),
+            switchTheme: SwitchThemeData(
+              thumbColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.black;
+                }
+                return const Color(0xFF888888);
+              }),
+              trackColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const Color(0xFF39FF14);
+                }
+                return const Color(0xFF2A2A2A);
+              }),
+            ),
           ),
+
           home: const SplashScreen(),
         );
       },

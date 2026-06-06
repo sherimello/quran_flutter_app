@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'dart:async';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -339,11 +341,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       _playAyah(next['surahNumber'], next['numberInSurah']);
 
       // Auto scroll
-      _itemScrollController.scrollTo(
-        index: currentIndex + 1,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      _itemScrollController.jumpTo(index: currentIndex + 1);
     } else {
       setState(() => _isAutoPlaying = false);
     }
@@ -497,6 +495,8 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
   void _showJuzInfo() {
     if (_juzInfo == null) return;
 
+    var size = MediaQuery.of(context).size;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -510,8 +510,8 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
             ),
             decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(25),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(size.width * .11),
               ),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -519,11 +519,13 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 40,
+                  width: 36,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -532,28 +534,23 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Juz Information',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
                         const SizedBox(height: 16),
                         if (_juzInfo!['juz_info'] != null &&
                             _juzInfo!['juz_info'].toString().isNotEmpty) ...[
-                          const Text(
+                          Text(
                             'Background',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.poppins(
+                              fontSize: size.width * .039,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             _juzInfo!['juz_info'],
-                            style: const TextStyle(fontSize: 16, height: 1.5),
+                            style: GoogleFonts.poppins(
+                              fontSize: size.width * .035,
+                              height: 0,
+                            ),
                           ),
                           const SizedBox(height: 24),
                         ],
@@ -561,17 +558,20 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                             _juzInfo!['juz_learning']
                                 .toString()
                                 .isNotEmpty) ...[
-                          const Text(
+                          Text(
                             'Learning Points',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            style: GoogleFonts.poppins(
+                              fontSize: size.width * .039,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             _juzInfo!['juz_learning'],
-                            style: const TextStyle(fontSize: 16, height: 1.5),
+                            style: GoogleFonts.poppins(
+                              fontSize: size.width * .035,
+                              height: 0,
+                            ),
                           ),
                         ],
                         const SizedBox(height: 40),
@@ -628,13 +628,41 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            titleSpacing: 0,
-            title: Text(
-              'Juz ${widget.juzNumber}',
-              style: TextStyle(
-                fontSize: size.width * .041,
-                fontWeight: FontWeight.w900,
-              ),
+            toolbarHeight: AppBar().preferredSize.height * 1.5,
+            titleSpacing: 12,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Juz ${widget.juzNumber}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    height: 0,
+                  ),
+                ),
+                if (!_isLoading && _ayahs.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff34da15),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      '${_ayahs.length} Verses',
+                      style: GoogleFonts.poppins(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             actions: [
               GestureDetector(
@@ -644,27 +672,34 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                       ? CupertinoIcons.book_fill
                       : CupertinoIcons.book,
                   color: settings.isReadingMode
-                      ? Theme.of(context).colorScheme.primary
+                      ? const Color(0xff34da15)
                       : null,
+                  size: size.width * .049,
                 ),
               ),
               const SizedBox(width: 9),
               GestureDetector(
                 onTap: _showJumpToVerseDialog,
-                child: const Icon(CupertinoIcons.list_bullet_below_rectangle),
+                child: Icon(
+                  CupertinoIcons.list_bullet_below_rectangle,
+                  size: size.width * .049,
+                ),
               ),
               const SizedBox(width: 9),
               GestureDetector(
                 onTap: _showJuzInfo,
-                child: const Icon(CupertinoIcons.info_circle),
+                child: Icon(
+                  CupertinoIcons.info_circle,
+                  size: size.width * .049,
+                ),
               ),
               const SizedBox(width: 9),
               if (_isDownloadingAudio)
                 Padding(
                   padding: const EdgeInsets.all(5.0),
                   child: SizedBox(
-                    width: size.width * .035,
-                    height: size.width * .035,
+                    width: size.width * .039,
+                    height: size.width * .039,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
                       color: Theme.of(context).colorScheme.onSurface,
@@ -675,7 +710,10 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               else if (!_isAudioDownloaded)
                 GestureDetector(
                   onTap: _downloadAudio,
-                  child: const Icon(CupertinoIcons.cloud_download),
+                  child: Icon(
+                    CupertinoIcons.cloud_download,
+                    size: size.width * .049,
+                  ),
                 )
               else
                 GestureDetector(
@@ -685,6 +723,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                     color: Theme.of(context).brightness == Brightness.light
                         ? Colors.black
                         : Colors.white,
+                    size: size.width * .049,
                   ),
                 ),
               const SizedBox(width: 9),
@@ -697,7 +736,7 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                     ),
                   );
                 },
-                child: const Icon(CupertinoIcons.gear),
+                child: Icon(CupertinoIcons.gear, size: size.width * .049),
               ),
               const SizedBox(width: 9),
             ],
@@ -749,64 +788,100 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                             padding: const EdgeInsets.only(top: 16, bottom: 8),
                             child: Column(
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                Text(
+                                  'surah${ayah['number'].toString().length == 3
+                                      ? ayah['number'].toString()
+                                      : ayah['number'].toString().length == 2
+                                      ? "0${ayah['number']}"
+                                      : "00${ayah['number']}"}',
+                                  style: TextStyle(
+                                    fontFamily: 'surahname',
+                                    fontSize: size.width * .11,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 0),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'surah${ayah['number'].toString().length == 3
-                                          ? ayah['number'].toString()
-                                          : ayah['number'].toString().length == 2
-                                          ? "0${ayah['number']}"
-                                          : "00${ayah['number']}"}',
-                                      style: TextStyle(
-                                        fontFamily: 'surahname',
-                                        fontSize: size.width * .1,
+                                      ayah['surahName'] ?? 'Surah ${ayah['number']}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        height: 0,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          ayah['surahName'] ??
-                                              'Surah ${ayah['number']}',
-                                          style: TextStyle(
-                                            fontSize: size.width * .045,
-                                            fontWeight: FontWeight.bold,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
-                                            height: 0,
-                                          ),
-                                          textAlign: TextAlign.center,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xff34da15),
+                                        // border: Border.all(
+                                        //   color: Theme.of(context)
+                                        //       .colorScheme
+                                        //       .primary
+                                        //       .withValues(alpha: 0.5),
+                                        // ),
+                                        borderRadius: BorderRadius.circular(100),
+                                      ),
+                                      child: Text(
+                                        '${DatabaseService.revelationType(ayah['number'] as int)} · ${ayah['totalVerses'] ?? 0} Verses',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                          letterSpacing: 0.5,
                                         ),
-                                        Text(
-                                          '${ayah['totalVerses'] ?? 0} Verses',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withAlpha(95),
-                                            fontWeight: FontWeight.w900,
-                                            height: 0,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
+                                    // Text(
+                                    //   '${widget.surah['englishNameTranslation'] ?? ''} · ${widget.surah['numberOfAyahs']} Ayahs',
+                                    //   style: GoogleFonts.poppins(
+                                    //     fontSize: 10,
+                                    //     fontWeight: FontWeight.w500,
+                                    //     color: Theme.of(context).brightness == Brightness.dark
+                                    //         ? Colors.white54
+                                    //         : Colors.black45,
+                                    //     height: 1.3,
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
-                                // const SizedBox(height: 4),
-                                // Text(
-                                //   '${ayah['totalVerses'] ?? 0} Verses',
-                                //   style: TextStyle(
-                                //     fontSize: 12,
-                                //     color: Theme.of(context).disabledColor,
-                                //     fontWeight: FontWeight.w500,
+                                // Container(
+                                //   padding: const EdgeInsets.symmetric(
+                                //     horizontal: 14,
+                                //     vertical: 5,
+                                //   ),
+                                //   decoration: BoxDecoration(
+                                //     color: Theme.of(context)
+                                //         .colorScheme
+                                //         .primary
+                                //         .withValues(alpha: 0.1),
+                                //     borderRadius: BorderRadius.circular(1000),
+                                //     border: Border.all(
+                                //       color: Theme.of(context)
+                                //           .colorScheme
+                                //           .primary
+                                //           .withValues(alpha: 0.3),
+                                //     ),
+                                //   ),
+                                //   child: Text(
+                                //     '${DatabaseService.revelationType(ayah['number'] as int)} · ${ayah['totalVerses'] ?? 0} Verses',
+                                //     style: GoogleFonts.poppins(
+                                //       fontSize: 11,
+                                //       fontWeight: FontWeight.w600,
+                                //       color: Theme.of(context).colorScheme.primary,
+                                //       letterSpacing: 0.3,
+                                //       height: 0,
+                                //     ),
                                 //   ),
                                 // ),
+                                const SizedBox(height: 17),
                               ],
                             ),
                           ),
@@ -859,340 +934,416 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
     SettingsProvider settings,
     Size size,
   ) {
-    return InkWell(
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(45),
-      onLongPress: () {
-        _addToBookmark(ayah['number'], ayah['numberInSurah']);
-      },
-      onTap: () {
-        if (_isAudioDownloaded) {
-          _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please download the audio for this Juz first'),
-            ),
-          );
-        }
-      },
-      child: Card(
-        semanticContainer: false,
-        surfaceTintColor: Colors.transparent,
-        color: isPlaying
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
-            : Theme.of(context).brightness == Brightness.light
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.07)
-            : Colors.white.withAlpha(15),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(45)),
-        child: Padding(
-          padding: const EdgeInsets.all(21.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: size.width * 0.079,
-                    height: size.width * 0.071,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(100),
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.1)
-                          : Colors.white.withAlpha(15),
-                      border: Border.all(
-                        width: 1,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withOpacity(0.1),
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${ayah['numberInSurah']}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          height: 0,
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (!settings.isReadingMode && _isAudioDownloaded)
-                    TextButton.icon(
-                      onPressed: () {
-                        if (isPlaying) {
-                          _audioPlayer.stop();
-                          setState(() {
-                            _playingAyahId = null;
-                            _isAutoPlaying = false;
-                          });
-                        } else {
-                          _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
-                        }
-                      },
-                      icon: Icon(
-                        isPlaying
-                            ? CupertinoIcons.pause
-                            : CupertinoIcons.play_arrow,
-                        size: 15,
-                        color: Theme.of(context).brightness == Brightness.light
-                            ? Colors.black
-                            : Colors.white,
-                      ),
-                      label: Text(
-                        isPlaying ? "Stop" : "Play",
-                        style: TextStyle(
-                          height: 1.0,
-                          fontSize: 13,
-                          color:
-                              Theme.of(context).brightness == Brightness.light
-                              ? Colors.black
-                              : Colors.white,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor:
-                            Theme.of(context).brightness == Brightness.light
-                            ? Colors.black.withOpacity(0.04)
-                            : Colors.white.withOpacity(0.08),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(100),
-                          side: BorderSide(
-                            width: .5,
-                            color:
-                                Theme.of(context).brightness == Brightness.light
-                                ? Colors.black.withOpacity(0.15)
-                                : Colors.white.withOpacity(0.15),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 17),
+      child: InkWell(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        onLongPress: () => _addToBookmark(ayah['number'], ayah['numberInSurah']),
+        onTap: () {
+          if (_isAudioDownloaded) {
+            _playAyah(ayah['surahNumber'], ayah['numberInSurah']);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please download the audio for this Juz first'),
               ),
-              const SizedBox(height: 11),
-
-              // Arabic text
-              settings.enableTajweed
-                  ? RichText(
-                      textAlign: TextAlign.right,
-                      textDirection: TextDirection.rtl,
-                      text: TextSpan(
-                        children: TajweedRenderer.getTajweedSpans(
-                          displayText.replaceAllMapped(
-                            RegExp(r'([\u06D6-\u06DC])'),
-                            (match) => '   ${match.group(0)} ',
-                          ),
-                          TextStyle(
-                            fontFamily: arabicFont,
-                            fontSize: settings.arabicFontSize,
-                            height: 1.8,
-                            wordSpacing: 0,
+            );
+          }
+        },
+        child: Transform.scale(
+          scale: 0.9,
+          child: Card(
+            semanticContainer: false,
+            surfaceTintColor: Colors.transparent,
+            color: Colors.transparent,
+            elevation: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  spacing: 19,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left: verse number blob + audio button
+                    Wrap(
+                      direction: Axis.vertical,
+                      spacing: 7,
+                      children: [
+                        Container(
+                          width: 29,
+                          height: 29,
+                          margin: EdgeInsets.only(top: 14.5),
+                          decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.onSurface,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(size.width * .65),
+                              bottomLeft: Radius.circular(size.width * .5),
+                              topRight: Radius.circular(size.width * .75),
+                              bottomRight: Radius.circular(size.width * .75),
+                            ),
                           ),
-                          isIndopak: arabicFont == 'qalammajeed3',
-                        ),
-                      ),
-                    )
-                  : Text(
-                      displayText.replaceAllMapped(
-                        RegExp(r'([\u06D6-\u06DC])'),
-                        (match) => '      ${match.group(0)} ',
-                      ),
-                      textAlign: TextAlign.right,
-                      textDirection: TextDirection.rtl,
-                      style: TextStyle(
-                        fontFamily: arabicFont,
-                        fontSize: settings.arabicFontSize,
-                        height: 1.8,
-                        wordSpacing: 0,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-
-              // Pronunciation
-              if (settings.pronunciation != 'none' &&
-                  ayah['pronunciation'] != null) ...[
-                const SizedBox(height: 8),
-                if (settings.pronunciation == 'latin_english')
-                  HtmlWidget(
-                    '<div style="text-align: end;">${ayah['pronunciation']}</div>',
-                    textStyle: TextStyle(
-                      fontSize: settings.translationFontSize * 0.75,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  )
-                else
-                  Text(
-                    _decodeLatin(ayah['pronunciation']),
-                    textAlign: TextAlign.end,
-                    style: TextStyle(
-                      fontSize: settings.translationFontSize * 0.75,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontStyle: FontStyle.italic,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-              ],
-              const SizedBox(height: 11),
-              // WORD BY WORD UI
-              if (!settings.isReadingMode &&
-                  settings.showWordByWord &&
-                  ayah['words'] != null) ...[
-                const SizedBox(height: 16),
-                Wrap(
-                  alignment: WrapAlignment.start,
-                  direction: Axis.horizontal,
-                  textDirection: TextDirection.rtl,
-                  runAlignment: WrapAlignment.start,
-                  runSpacing: 7,
-                  spacing: 7,
-                  children: (ayah['words'] as List).map((word) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.light
-                            ? Colors.black.withOpacity(0.04)
-                            : Colors.white.withOpacity(0.07),
-                        borderRadius: BorderRadius.circular(19),
-                        border: Border.all(
-                          color:
-                              Theme.of(context).brightness == Brightness.light
-                              ? Colors.black.withOpacity(0.08)
-                              : Colors.white.withOpacity(0.12),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            word['arabic'] ?? '',
-                            style: TextStyle(
-                              fontFamily: arabicFont,
-                              fontSize: size.width * .047,
+                          alignment: Alignment.center,
+                          child: Text(
+                            '${ayah['numberInSurah']}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
                               height: 0,
                               fontWeight: FontWeight.w900,
+                              color: Theme.of(context).colorScheme.surface,
+                            ),
+                          ),
+                        ),
+                        if (!settings.isReadingMode && _isAudioDownloaded)
+                          GestureDetector(
+                            onTap: () {
+                              if (isPlaying) {
+                                _audioPlayer.stop();
+                                setState(() {
+                                  _playingAyahId = null;
+                                  _isAutoPlaying = false;
+                                });
+                              } else {
+                                _playAyah(
+                                  ayah['surahNumber'],
+                                  ayah['numberInSurah'],
+                                );
+                              }
+                            },
+                            child: Container(
+                              width: 29,
+                              height: 29,
+                              decoration: BoxDecoration(
+                                color: isPlaying
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).brightness ==
+                                            Brightness.light
+                                    ? Colors.black.withValues(alpha: 0.05)
+                                    : Colors.white.withValues(alpha: 0.07),
+                                border: Border.all(
+                                  width: .35,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.25),
+                                ),
+                                borderRadius: BorderRadius.circular(1000),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  isPlaying
+                                      ? CupertinoIcons.stop_fill
+                                      : CupertinoIcons.play_fill,
+                                  size: 15,
+                                  color: isPlaying
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : const Color(0xff34da15),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (DatabaseService.isSajdaVerse(
+                          ayah['surahNumber'] as int,
+                          ayah['numberInSurah'] as int,
+                        ))
+                          SizedBox(
+                            width: 29,
+                            height: 29,
+                            child: Image.asset(
+                              'assets/images/sujood.png',
+                              fit: BoxFit.contain,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          if (settings.showWbwTransliteration &&
-                              word['transliteration'] != null &&
-                              word['transliteration']
-                                  .toString()
-                                  .isNotEmpty) ...[
-                            const SizedBox(height: 2),
+                      ],
+                    ),
+
+                    // Right: arabic + everything else
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Arabic text
+                          settings.enableTajweed
+                              ? RichText(
+                                  textAlign: TextAlign.right,
+                                  textDirection: TextDirection.rtl,
+                                  text: TextSpan(
+                                    children: TajweedRenderer.getTajweedSpans(
+                                      displayText.replaceAllMapped(
+                                        RegExp(r'([\u06D6-\u06DC])'),
+                                        (match) => '   ${match.group(0)} ',
+                                      ),
+                                      TextStyle(
+                                        fontFamily: arabicFont,
+                                        fontSize: settings.arabicFontSize,
+                                        height: 1.8,
+                                        wordSpacing: 0,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                      ),
+                                      isIndopak: arabicFont == 'qalammajeed3',
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  displayText.replaceAllMapped(
+                                    RegExp(r'([\u06D6-\u06DC])'),
+                                    (match) => '      ${match.group(0)} ',
+                                  ),
+                                  textAlign: TextAlign.right,
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                    fontFamily: arabicFont,
+                                    fontSize: settings.arabicFontSize,
+                                    height: 1.8,
+                                    wordSpacing: 0,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                ),
+
+                          // Pronunciation
+                          if (settings.pronunciation != 'none' &&
+                              ayah['pronunciation'] != null) ...[
+                            const SizedBox(height: 3),
+                            if (settings.pronunciation == 'latin_english')
+                              HtmlWidget(
+                                '<div style="text-align: end;">${ayah['pronunciation']}</div>',
+                                textStyle: GoogleFonts.poppins(
+                                  fontSize: settings.translationFontSize * 0.75,
+                                  height: 0,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              )
+                            else
+                              Text(
+                                _decodeLatin(ayah['pronunciation']),
+                                textAlign: TextAlign.end,
+                                style: GoogleFonts.poppins(
+                                  fontSize: settings.translationFontSize * 0.75,
+                                  height: 0,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                  fontStyle: FontStyle.italic,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                          ],
+
+                          // Word-by-word
+                          if (!settings.isReadingMode &&
+                              settings.showWordByWord &&
+                              ayah['words'] != null) ...[
+                            const SizedBox(height: 16),
+                            Wrap(
+                              alignment: WrapAlignment.start,
+                              direction: Axis.horizontal,
+                              textDirection: TextDirection.rtl,
+                              runAlignment: WrapAlignment.start,
+                              runSpacing: 7,
+                              spacing: 7,
+                              children: (ayah['words'] as List).map((word) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 31,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.light
+                                        ? Colors.black.withValues(alpha: 0.03)
+                                        : Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(1000),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.light
+                                          ? Colors.black.withValues(alpha: 0.07)
+                                          : Colors.white.withValues(alpha: 0.1),
+                                      width: 0,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        word['arabic'] ?? '',
+                                        style: TextStyle(
+                                          fontFamily: arabicFont,
+                                          fontSize: size.width * .047,
+                                          height: 0,
+                                          fontWeight: FontWeight.w900,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      if (settings.showWbwTransliteration &&
+                                          word['transliteration'] != null &&
+                                          word['transliteration']
+                                              .toString()
+                                              .isNotEmpty) ...[
+                                        Text(
+                                          word['transliteration'],
+                                          style: GoogleFonts.poppins(
+                                            fontSize:
+                                                settings.translationFontSize *
+                                                0.55,
+                                            fontStyle: FontStyle.italic,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.tertiary,
+                                          ),
+                                        ),
+                                      ],
+                                      Text(
+                                        word['translation'] ?? '',
+                                        style: GoogleFonts.poppins(
+                                          fontSize:
+                                              settings.translationFontSize *
+                                              0.6,
+                                          fontWeight: FontWeight.w500,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.secondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+
+                          // Translation
+                          if (!settings.isReadingMode &&
+                              ayah['translation'] != null) ...[
+                            const SizedBox(height: 17),
                             Text(
-                              word['transliteration'],
-                              style: TextStyle(
-                                fontSize: settings.translationFontSize * 0.55,
-                                fontStyle: FontStyle.italic,
-                                color: Theme.of(context).colorScheme.tertiary,
+                              ayah['translation'],
+                              textAlign: TextAlign.left,
+                              style: GoogleFonts.poppins(
+                                height: 0,
+                                fontSize: settings.translationFontSize,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.color,
+                                fontWeight: FontWeight.normal,
                               ),
                             ),
                           ],
-                          Text(
-                            word['translation'] ?? '',
-                            style: TextStyle(
-                              fontSize: settings.translationFontSize * 0.6,
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-              if (!settings.isReadingMode) const SizedBox(height: 11),
 
-              // TRANSLATION
-              if (!settings.isReadingMode && ayah['translation'] != null) ...[
-                const SizedBox(height: 11),
-                Text(
-                  ayah['translation'],
-                  textAlign: TextAlign.left,
-                  style: TextStyle(
-                    fontSize: settings.translationFontSize,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ],
-
-              // TAFSEER
-              if (!settings.isReadingMode &&
-                  settings.showTafseer &&
-                  ayah['tafseer'] != null) ...[
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      ayah['isTafseerExpanded'] =
-                          !(ayah['isTafseerExpanded'] ?? false);
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(17),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? Colors.black.withOpacity(0.04)
-                          : Colors.white.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(17),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tafseer:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        (ayah['isTafseerExpanded'] == true)
-                            ? HtmlWidget(
-                                ayah['tafseer'],
-                                textStyle: TextStyle(
-                                  fontSize: settings.translationFontSize * 0.75,
+                          // Tafseer
+                          if (!settings.isReadingMode &&
+                              settings.showTafseer &&
+                              ayah['tafseer'] != null) ...[
+                            const SizedBox(height: 17),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  ayah['isTafseerExpanded'] =
+                                      !(ayah['isTafseerExpanded'] ?? false);
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(21),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.light
+                                      ? Colors.black.withValues(alpha: 0.03)
+                                      : Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(31),
+                                  border: Border.all(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.light
+                                        ? Colors.black.withValues(alpha: 0.07)
+                                        : Colors.white.withValues(alpha: 0.1),
+                                    width: 0,
+                                  ),
                                 ),
-                              )
-                            : Text(
-                                ayah['tafseerSnippet'] ?? '',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: settings.translationFontSize * 0.75,
-                                  fontStyle: FontStyle.italic,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          CupertinoIcons.book_fill,
+                                          size: 11,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          'Tafseer',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Icon(
+                                          ayah['isTafseerExpanded'] == true
+                                              ? CupertinoIcons.chevron_up
+                                              : CupertinoIcons.chevron_down,
+                                          size: 12,
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.light
+                                              ? Colors.black38
+                                              : Colors.white38,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ayah['isTafseerExpanded'] == true
+                                        ? HtmlWidget(
+                                            ayah['tafseer'],
+                                            textStyle: GoogleFonts.poppins(
+                                              fontSize:
+                                                  settings.translationFontSize *
+                                                  0.67,
+                                              height: 0,
+                                            ),
+                                          )
+                                        : Text(
+                                            ayah['tafseerSnippet'] ?? '',
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.poppins(
+                                              fontSize:
+                                                  settings.translationFontSize *
+                                                  0.75,
+                                              fontStyle: FontStyle.italic,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.light
+                                                  ? Colors.black54
+                                                  : Colors.white54,
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                  ],
                                 ),
                               ),
-                      ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
-  double _arabicFontSize = 24.0;
+  double _arabicFontSize = 29.0;
   double _translationFontSize = 16.0;
   bool _showTafseer = false;
   bool _isReadingMode = false;
@@ -175,12 +175,8 @@ class SettingsProvider with ChangeNotifier {
     final themeIndex = prefs.getInt('theme_mode') ?? 0;
     _themeMode = ThemeMode.values[themeIndex];
 
-    // Migration logic from single font_size to separate ones
-    final oldFontSize = prefs.getDouble('font_size') ?? 18.0;
-    _arabicFontSize =
-        prefs.getDouble('arabic_font_size') ?? (oldFontSize + 6.0);
-    _translationFontSize =
-        prefs.getDouble('translation_font_size') ?? oldFontSize;
+    _arabicFontSize = prefs.getDouble('arabic_font_size') ?? 29.0;
+    _translationFontSize = prefs.getDouble('translation_font_size') ?? 16.0;
 
     _showTafseer = prefs.getBool('show_tafseer') ?? false;
     _isReadingMode = prefs.getBool('is_reading_mode') ?? false;

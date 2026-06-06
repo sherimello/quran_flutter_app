@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../services/supabase_service.dart';
 import 'auth_screen.dart';
 
@@ -32,9 +35,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = SupabaseService().currentUser;
+    var size = MediaQuery.of(context).size;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        centerTitle: true,
+        actions: [
+          GestureDetector(
+            onTap: () async {
+              await SupabaseService().signOut();
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              margin: EdgeInsets.only(right: 13),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(1000),
+              ),
+              child: Text(
+                'Logout',
+                style: GoogleFonts.poppins(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                  height: 0,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+        ],
+        title: Text(
+          'Profile',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: size.width * .041,
+          ),
+        ),
+        toolbarHeight: AppBar().preferredSize.height * 1.5,
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -42,42 +87,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const CircleAvatar(
-                    radius: 50,
-                    child: Icon(Icons.person, size: 50),
+                  Container(
+                    width: AppBar().preferredSize.height * 2,
+                    height: AppBar().preferredSize.height * 2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xff34da15),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(size.width * .65),
+                        bottomLeft: Radius.circular(size.width * .5),
+                        topRight: Radius.circular(size.width * .75),
+                        bottomRight: Radius.circular(size.width * .75),
+                      ),
+                    ),
+                    child: Icon(CupertinoIcons.person, size: size.width * .1),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 17),
                   Text(
                     user?.email ?? 'Unknown User',
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: GoogleFonts.poppins(
+                      fontSize: size.width * .041,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 48),
                   _buildStatTile('Total Bookmarks', '$_totalBookmarks'),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(16),
-                      ),
-                      onPressed: () async {
-                        await SupabaseService().signOut();
-                        if (mounted) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AuthScreen(),
-                            ),
-                            (route) => false,
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout'),
-                    ),
-                  ),
+                  // const Spacer(),
+                  // SizedBox(
+                  //   width: double.infinity,
+                  //   child: ElevatedButton.icon(
+                  //     style: ElevatedButton.styleFrom(
+                  //       backgroundColor: Colors.red,
+                  //       foregroundColor: Colors.white,
+                  //       padding: const EdgeInsets.all(16),
+                  //     ),
+                  //     onPressed: () async {
+                  //       await SupabaseService().signOut();
+                  //       if (mounted) {
+                  //         Navigator.pushAndRemoveUntil(
+                  //           context,
+                  //           MaterialPageRoute(
+                  //             builder: (_) => const AuthScreen(),
+                  //           ),
+                  //           (route) => false,
+                  //         );
+                  //       }
+                  //     },
+                  //     icon: const Icon(Icons.logout),
+                  //     label: const Text('Logout'),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
@@ -85,19 +143,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatTile(String label, String value) {
+    var size = MediaQuery.of(context).size;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 21, horizontal: 31),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xff34da15).withOpacity(0.13),
+        borderRadius: BorderRadius.circular(1000),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 18)),
+          Text(label, style: GoogleFonts.poppins(fontSize: size.width * .037)),
           Text(
             value,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+              fontSize: 21,
+              height: 0,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

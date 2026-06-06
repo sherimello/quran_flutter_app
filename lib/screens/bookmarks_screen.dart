@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/supabase_service.dart';
 import '../services/database_service.dart';
 import 'surah_detail_screen.dart';
@@ -80,178 +81,241 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var size = MediaQuery
+        .of(context)
+        .size;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Bookmarks')),
+      appBar: AppBar(
+        title: Text(
+          'Bookmarks',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: size.width * .041,
+          ),
+        ),
+        toolbarHeight: AppBar().preferredSize.height * 1.5,),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
-              children: [
-                // Guest banner – shows a prompt to login for cloud backup
-                if (!_isLoggedIn)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.08),
-                    child: Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.cloud_upload,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Sign in to back up your bookmarks to the cloud.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
+        children: [
+          // Guest banner – shows a prompt to login for cloud backup
+          if (!_isLoggedIn)
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.symmetric(horizontal: 11),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: Theme
+                    .of(
+                  context,
+                )
+                    .colorScheme
+                    .primary
+                    .withOpacity(0.17),
+                borderRadius: BorderRadius.circular(11)
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.cloud_upload_fill,
+                    size: 18,
+                    color: Theme
+                        .of(context)
+                        .colorScheme
+                        .onSurface,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Sign in to back up your bookmarks to the cloud.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        height: 0,
+                        color: Theme
+                            .of(context)
+                            .colorScheme
+                            .onSurface,
+                        fontWeight: FontWeight.w600
+                      ),
                     ),
                   ),
-                Expanded(
-                  child: _folders.isEmpty
-                      ? const Center(child: Text('No bookmarks found'))
-                      : ListView.builder(
-                          itemCount: _folders.keys.length,
-                          itemBuilder: (context, index) {
-                            final folderName = _folders.keys.elementAt(index);
-                            final bookmarks = _folders[folderName]!;
+                ],
+              ),
+            ),
+          Expanded(
+            child: _folders.isEmpty
+                ? Center(child: Icon(Icons.do_not_disturb_off_outlined, size: MediaQuery.of(context).size.width * .17,))
+                : ListView.builder(
+              itemCount: _folders.keys.length,
+              itemBuilder: (context, index) {
+                final folderName = _folders.keys.elementAt(index);
+                final bookmarks = _folders[folderName]!;
 
-                            return GestureDetector(
-                              onLongPress: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Delete Folder?'),
-                                    content: Text(
-                                      'Remove all bookmarks in "$folderName"?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          _deleteFolder(folderName);
-                                        },
-                                        child: const Text(
-                                          'Delete',
-                                          style: TextStyle(color: Colors.red),
-                                        ),
-                                      ),
-                                    ],
+                return Transform.scale(
+                  scale: 0.9,
+                  child: GestureDetector(
+                    onLongPress: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            AlertDialog(
+                              title: const Text('Delete Folder?'),
+                              content: Text(
+                                'Remove all bookmarks in "$folderName"?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _deleteFolder(folderName);
+                                  },
+                                  child: const Text(
+                                    'Delete',
+                                    style: TextStyle(color: Colors.red),
                                   ),
-                                );
-                              },
-                              child: ExpansionTile(
-                                title: Text(folderName),
-                                leading: const Icon(CupertinoIcons.folder),
-                                children: bookmarks.map((bookmark) {
-                                  // Show a sync indicator for pending bookmarks
-                                  final isPending =
-                                      (bookmark['pending_sync'] as int? ?? 0) ==
-                                      1;
-                                  return ListTile(
-                                    onLongPress: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Delete Bookmark?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: const Text('Cancel'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                _deleteBookmark(
-                                                  bookmark['id'],
-                                                  bookmark['remote_id'],
-                                                );
-                                              },
-                                              child: const Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                ),
+                              ],
+                            ),
+                      );
+                    },
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                          dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        title: Text(folderName, style: GoogleFonts.poppins(
+                            fontSize: size.width * .039,
+                            fontWeight: FontWeight.w700
+                        ),),
+                        leading: const Icon(
+                            CupertinoIcons.square_favorites_fill),
+                        children: bookmarks.map((bookmark) {
+                          // Show a sync indicator for pending bookmarks
+                          final isPending =
+                              (bookmark['pending_sync'] as int? ?? 0) ==
+                                  1;
+                          return ListTile(
+                            contentPadding: EdgeInsets.symmetric(horizontal: size.width * .11),
+                            onLongPress: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) =>
+                                    AlertDialog(
+                                      title: const Text('Delete Bookmark?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('Cancel'),
                                         ),
-                                      );
-                                    },
-                                    title: Text(
-                                      'Surah ${bookmark['surah_number']} : Ayah ${bookmark['ayah_number']}',
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (isPending)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              right: 6,
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            _deleteBookmark(
+                                              bookmark['id'],
+                                              bookmark['remote_id'],
+                                            );
+                                          },
+                                          child: const Text(
+                                            'Delete',
+                                            style: TextStyle(
+                                              color: Colors.red,
                                             ),
-                                            child: Icon(
-                                              CupertinoIcons.cloud_upload,
-                                              size: 14,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withOpacity(0.7),
-                                            ),
-                                          ),
-                                        Text(
-                                          '${bookmark['surah_number']}',
-                                          style: const TextStyle(
-                                            fontFamily: 'surahname',
-                                            fontSize: 24,
                                           ),
                                         ),
                                       ],
                                     ),
-                                    subtitle: Text(
-                                      'Saved on ${bookmark['updated_at'].toString().split('T')[0]}',
-                                    ),
-                                    onTap: () async {
-                                      final surah = await DatabaseService()
-                                          .getSurahByNumber(
-                                            bookmark['surah_number'],
-                                          );
-                                      if (surah != null && mounted) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => SurahDetailScreen(
-                                              surah: surah,
-                                              initialAyah:
-                                                  bookmark['ayah_number'],
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  );
-                                }).toList(),
+                              );
+                            },
+                            title: Text(
+                              'Surah ${bookmark['surah_number']} : Ayah ${bookmark['ayah_number']}',
+                              style: GoogleFonts.poppins(
+                                  fontSize: size.width * .037,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme
+                                      .of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.45)
                               ),
-                            );
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isPending)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      right: 6,
+                                    ),
+                                    child: Icon(
+                                      CupertinoIcons.cloud_upload,
+                                      size: 14,
+                                      color: Theme
+                                          .of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.7),
+                                    ),
+                                  ),
+                                Text(
+                                  '${bookmark['surah_number']}',
+                                  style: const TextStyle(
+                                    fontFamily: 'surahname',
+                                    fontSize: 24,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Text(
+                                'Saved on ${bookmark['updated_at']
+                                    .toString()
+                                    .split('T')[0]}',
+                                style: GoogleFonts
+                                    .poppins(
+                                    fontSize: size.width * .031,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.45)
+                            ),
+                          ),
+                          onTap: () async {
+                          final surah = await DatabaseService()
+                              .getSurahByNumber(
+                          bookmark['surah_number'],
+                          );
+                          if (surah != null && mounted) {
+                          Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                          builder: (_) => SurahDetailScreen(
+                          surah: surah,
+                          initialAyah:
+                          bookmark['ayah_number'],
+                          ),
+                          ),
+                          );
+                          }
                           },
-                        ),
-                ),
-              ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
+          ),
+        ],
+      ),
     );
   }
 }

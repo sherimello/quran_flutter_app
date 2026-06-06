@@ -30,10 +30,7 @@ class SurahCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF10B981),
-                      Color(0xFF059669),
-                    ], // Emerald-500 to 600
+                    colors: [Color(0xFF222222), Color(0xFF000000)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -78,12 +75,6 @@ class SurahCard extends StatelessWidget {
                   Text(
                     surah.name,
                     style: TextStyle(
-                      fontFamily:
-                          'Amiri', // Or system serif if Amiri not loaded, but GoogleFonts supports arabic?
-                      // We will use standard font, but style it to look like Arabic if possible.
-                      // Actually GoogleFonts.amiri() exists but need to add to pubspec if we want it.
-                      // For now, assume default handled by system or we used inter.
-                      // The Next.js app uses specific classes, I will just use a serif font or standard.
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -96,9 +87,7 @@ class SurahCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: surah.revelationType == 'Meccan'
-                          ? const Color(0xFF10B981) // Emerald
-                          : const Color(0xFFF59E0B), // Amber
+                      color: const Color(0xFF39FF14),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
