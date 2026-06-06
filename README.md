@@ -1,6 +1,19 @@
-# Qur'an
+<div align="center">
+  <img src="quran_flutter_app/assets/images/logo_new.png" width="120" alt="Qur'an App Logo" />
 
-A full-featured, offline-first Quran app built with Flutter. Reads beautifully, searches intelligently, and works without an internet connection.
+  <h1>Qur'an</h1>
+
+  <p>A full-featured, offline-first Quran app built with Flutter.<br/>Reads beautifully, searches intelligently, works without an internet connection.</p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat&logo=flutter&logoColor=white" />
+    <img src="https://img.shields.io/badge/Dart-3.x-0175C2?style=flat&logo=dart&logoColor=white" />
+    <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Web%20%7C%20Desktop-39FF14?style=flat" />
+    <img src="https://img.shields.io/badge/Offline-First-brightgreen?style=flat" />
+    <img src="https://img.shields.io/badge/AI-On--Device%20BERT-blueviolet?style=flat&logo=onnx" />
+    <img src="https://img.shields.io/badge/License-Open%20Source-lightgrey?style=flat" />
+  </p>
+</div>
 
 ---
 
@@ -81,14 +94,14 @@ lib/
 │   ├── settings_screen.dart
 │   └── widget_settings_screen.dart
 ├── services/
-│   ├── database_service.dart     # SQLite read/write
-│   ├── audio_service.dart        # Download + playback
-│   ├── semantic_search_service.dart  # Hybrid BERT + keyword search
-│   ├── onnx_bert_service.dart    # On-device BERT inference
-│   ├── bert_tokenizer.dart       # WordPiece tokenizer
-│   ├── tajweed_service.dart      # Arabic rule coloring
-│   ├── supabase_service.dart     # Auth + cloud sync
-│   └── widget_service.dart       # Android home widget
+│   ├── database_service.dart          # SQLite read/write
+│   ├── audio_service.dart             # Download + playback
+│   ├── semantic_search_service.dart   # Hybrid BERT + keyword search
+│   ├── onnx_bert_service.dart         # On-device BERT inference
+│   ├── bert_tokenizer.dart            # WordPiece tokenizer
+│   ├── tajweed_service.dart           # Arabic rule coloring
+│   ├── supabase_service.dart          # Auth + cloud sync
+│   └── widget_service.dart            # Android home widget
 ├── models/           # Surah, Ayah, TafseerEmbedding, SearchResult
 ├── data/             # Static juz boundary data
 └── widgets/          # AutoHideScrollbar, shared UI components
@@ -146,12 +159,12 @@ cd quran/quran_flutter_app
 flutter pub get
 ```
 
-Add your Supabase credentials to `lib/main.dart` (or a `.env` file if you wire one up):
+Add your Supabase credentials to `lib/main.dart`:
 
 ```dart
 await Supabase.initialize(
-  url: 'YOUR_SUPABASE_URL',
-  anonKey: 'YOUR_SUPABASE_ANON_KEY',
+url: 'YOUR_SUPABASE_URL',
+anonKey: 'YOUR_SUPABASE_ANON_KEY',
 );
 ```
 
