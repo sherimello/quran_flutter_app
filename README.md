@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="quran_flutter_app/assets/images/logo_new.png" width="120" alt="Qur'an App Logo" />
+  <img src="assets/images/logo_new.png" width="120" alt="Qur'an App Logo" />
 
   <h1>Qur'an</h1>
 
