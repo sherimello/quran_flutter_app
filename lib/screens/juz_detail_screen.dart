@@ -13,6 +13,7 @@ import '../services/supabase_service.dart';
 import '../providers/settings_provider.dart';
 import '../data/juz_data.dart';
 import '../services/tajweed_service.dart';
+import '../widgets/blurred_sheet.dart';
 import '../widgets/auto_hide_scrollbar.dart';
 import 'settings_screen.dart';
 
@@ -502,20 +503,21 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          bottom: false,
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(size.width * .11),
+        return BlurredSheet(
+          child: SafeArea(
+            bottom: false,
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
               ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Column(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(size.width * .11),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
@@ -582,7 +584,8 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
               ],
             ),
           ),
-        );
+        ),
+      );
       },
     );
   }

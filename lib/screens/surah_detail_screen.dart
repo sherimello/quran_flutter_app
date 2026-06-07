@@ -13,6 +13,7 @@ import '../services/audio_service.dart';
 import '../services/database_service.dart';
 import '../services/supabase_service.dart';
 import '../services/tajweed_service.dart';
+import '../widgets/blurred_sheet.dart';
 import '../widgets/auto_hide_scrollbar.dart';
 import 'settings_screen.dart';
 
@@ -248,20 +249,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          bottom: false,
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(size.width * .11),
+        return BlurredSheet(
+          child: SafeArea(
+            bottom: false,
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
               ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Column(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(size.width * .11),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
@@ -338,7 +340,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               ],
             ),
           ),
-        );
+        ),
+      );
       },
     );
   }
@@ -1264,11 +1267,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                             fontFamily:
                                                                 arabicFont,
                                                             fontSize:
-                                                                size.width *
-                                                                .047,
+                                                            settings
+                                                                .arabicFontSize *
+                                                                0.79,
                                                             height: 0,
                                                             fontWeight:
-                                                                FontWeight.w900,
+                                                                FontWeight.w500,
                                                             color:
                                                                 Theme.of(
                                                                       context,
@@ -1300,12 +1304,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                               fontStyle:
                                                                   FontStyle
                                                                       .italic,
-                                                              color:
-                                                                  Theme.of(
-                                                                        context,
-                                                                      )
-                                                                      .colorScheme
-                                                                      .tertiary,
+                                                              color: const Color(0xff34da15),
                                                             ),
                                                           ),
                                                         ],
@@ -1324,7 +1323,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                                       context,
                                                                     )
                                                                     .colorScheme
-                                                                    .secondary,
+                                                                    .onSurface,
                                                           ),
                                                         ),
                                                       ],
@@ -1413,8 +1412,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                         children: [
                                                           Icon(
                                                             CupertinoIcons
-                                                                .book_fill,
-                                                            size: 11,
+                                                                .collections,
+                                                            size: size.width * .035,
                                                             color:
                                                                 Theme.of(
                                                                       context,
@@ -1428,7 +1427,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                           Text(
                                                             'Tafseer',
                                                             style: GoogleFonts.poppins(
-                                                              fontSize: 11,
+                                                              fontSize: size.width * .035,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .w700,
@@ -1473,7 +1472,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                                     fontSize:
                                                                         settings
                                                                             .translationFontSize *
-                                                                        0.67,
+                                                                        0.85,
                                                                     height: 0,
                                                                   ),
                                                             )
@@ -1488,7 +1487,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                                 fontSize:
                                                                     settings
                                                                         .translationFontSize *
-                                                                    0.75,
+                                                                    0.85,
                                                                 fontStyle:
                                                                     FontStyle
                                                                         .italic,

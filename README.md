@@ -20,41 +20,49 @@
 ## Features
 
 ### Reading
+
 - **Two Arabic scripts** — Indopak and Utsmani (Hafs)
 - **Bismillah rendering** with a dedicated calligraphy font
 - **Tajweed coloring** — 7 rules color-coded (Ghunna, Idghaam, Iqlaab, Ikhfaa, Qalqalah, and more)
-- **Word-by-word translations** in 16+ languages: English, Urdu, Bengali, Indonesian, Turkish, Tamil, Sindhi, Russian, Farsi, Malayalam, Hindi, German, French, Divehi, Chinese, and more
+- **Word-by-word translations** in 16+ languages: English, Urdu, Bengali, Indonesian, Turkish,
+  Tamil, Sindhi, Russian, Farsi, Malayalam, Hindi, German, French, Divehi, Chinese, and more
 - **Tafseer** (commentary) with expandable inline view
 - **Transliteration** (Latin pronunciation) alongside Arabic text
 - Browse by **Surah** or **Juz**
 - Chapter and Juz background information
 
 ### Audio
+
 - Stream or download recitations (Mishary Alafasy, 128kbps)
 - Auto-play continuous playback across verses
 - Per-surah download management with progress indicator
 - Autoscroll to the playing verse
 
 ### Search
-- **Semantic search** — on-device BERT model finds verses by concept, not just keywords ("I'm feeling anxious", "gratitude", "patience in hardship")
+
+- **Semantic search** — on-device BERT model finds verses by concept, not just keywords ("I'm
+  feeling anxious", "gratitude", "patience in hardship")
 - **Hybrid ranking** — semantic similarity boosted by keyword relevance
 - **Keyword fallback** — SQL LIKE search when the model isn't loaded
 - **Surah name search** — English, Malay, Indonesian, Bangla, Urdu, French
 - **Transliteration search** — find verses by how they sound in Latin script
 
 ### Bookmarks & Progress
+
 - **Folder-based bookmarks** — organize saved verses into named folders
 - **Reading progress** — auto-saves last read position (per surah and per juz)
 - **Offline-first sync** — bookmarks saved locally immediately, synced to cloud when signed in
 - **Guest mode** — works fully offline without an account
 
 ### Personalization
+
 - Light / Dark / System theme (neon green accent on Material Design 3)
 - Adjustable Arabic font size (20–50pt) and translation font size
 - Toggle word-by-word, tafseer, tajweed, and reading mode independently
 - All preferences persisted locally
 
 ### Android Home Widget
+
 - Add a verse widget to your home screen
 - Manage a playlist of verses (add, remove, shuffle)
 - Navigation controls directly from the widget
@@ -63,17 +71,17 @@
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Flutter (Dart), Material Design 3 |
-| State management | `provider` (ChangeNotifier) |
-| Local database | SQLite via `sqflite` (Quran.db, tafseer.db) |
-| Cloud backend | Supabase (auth + bookmark sync) |
-| On-device AI | ONNX Runtime + BERT (22 MB model) |
-| Audio | `audioplayers` + EveryAyah CDN |
-| Smooth lists | `scrollable_positioned_list` |
-| HTML rendering | `flutter_widget_from_html` |
-| Fonts | Custom Arabic fonts: Hafs, QalamMajeed, Besmallah |
+| Layer            | Technology                                        |
+|------------------|---------------------------------------------------|
+| Framework        | Flutter (Dart), Material Design 3                 |
+| State management | `provider` (ChangeNotifier)                       |
+| Local database   | SQLite via `sqflite` (Quran.db, tafseer.db)       |
+| Cloud backend    | Supabase (auth + bookmark sync)                   |
+| On-device AI     | ONNX Runtime + BERT (22 MB model)                 |
+| Audio            | `audioplayers` + EveryAyah CDN                    |
+| Smooth lists     | `scrollable_positioned_list`                      |
+| HTML rendering   | `flutter_widget_from_html`                        |
+| Fonts            | Custom Arabic fonts: Hafs, QalamMajeed, Besmallah |
 
 ---
 
@@ -120,10 +128,10 @@ assets/
 
 The app ships two read-only SQLite databases:
 
-| Database | Contents |
-|---|---|
-| `Quran.db` | Verses (Indopak + Utsmani), translations (Sahih International, Jalalayn), transliterations, word-by-word data, surah metadata |
-| `quran_tafsir.db` | Tafseer commentary with pre-computed BERT embeddings for semantic search |
+| Database          | Contents                                                                                                                      |
+|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `Quran.db`        | Verses (Indopak + Utsmani), translations (Sahih International, Jalalayn), transliterations, word-by-word data, surah metadata |
+| `quran_tafsir.db` | Tafseer commentary with pre-computed BERT embeddings for semantic search                                                      |
 
 A third database (`quran_app.db`) is created at runtime for bookmarks and reading progress.
 
@@ -162,7 +170,9 @@ flutter pub get
 Add your Supabase credentials to `lib/main.dart`:
 
 ```dart
-await Supabase.initialize(
+await
+Supabase.initialize
+(
 url: 'YOUR_SUPABASE_URL',
 anonKey: 'YOUR_SUPABASE_ANON_KEY',
 );
@@ -189,14 +199,14 @@ dart run flutter_launcher_icons
 
 ## Platform Support
 
-| Platform | Status |
-|---|---|
-| Android | ✅ Full support (API 21+), home widget |
-| iOS | ✅ Full support |
-| Web | ✅ PWA |
-| macOS | ✅ Desktop |
-| Windows | ✅ Desktop |
-| Linux | ✅ Desktop |
+| Platform | Status                                |
+|----------|---------------------------------------|
+| Android  | ✅ Full support (API 21+), home widget |
+| iOS      | ✅ Full support                        |
+| Web      | ✅ PWA                                 |
+| macOS    | ✅ Desktop                             |
+| Windows  | ✅ Desktop                             |
+| Linux    | ✅ Desktop                             |
 
 ---
 

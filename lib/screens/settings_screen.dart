@@ -260,32 +260,33 @@ class SettingsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 3,
-                                  height: 13,
-                                  decoration: BoxDecoration(
-                                    color: primary,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Color Legend',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? Colors.white38
-                                        : Colors.black38,
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            // Row(
+                            //   children: [
+                                // Container(
+                                //   width: 3,
+                                //   height: 13,
+                                //   decoration: BoxDecoration(
+                                //     color: primary,
+                                //     borderRadius: BorderRadius.circular(2),
+                                //   ),
+                                // ),
+                                // const SizedBox(width: 8),
+                                // Text(
+                                //   'Color Legend',
+                                //   style: GoogleFonts.poppins(
+                                //     fontSize: 11,
+                                //     fontWeight: FontWeight.w700,
+                                //     color: isDark
+                                //         ? Colors.white38
+                                //         : Colors.black38,
+                                //     letterSpacing: 0.8,
+                                //   ),
+                                // ),
+                            //   ],
+                            // ),
                             const SizedBox(height: 10),
                             Wrap(
+                              alignment: WrapAlignment.center,
                               spacing: 8,
                               runSpacing: 8,
                               children: [
@@ -413,7 +414,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: isDark ? Colors.white70 : Colors.black87,

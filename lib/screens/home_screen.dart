@@ -10,6 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../data/juz_data.dart';
+import '../widgets/blurred_sheet.dart';
 import '../providers/settings_provider.dart';
 import '../services/database_service.dart';
 import '../services/supabase_service.dart';
@@ -47,14 +48,37 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _surahScrollController = ScrollController();
   final ScrollController _juzScrollController = ScrollController();
 
+  // Haptic tick tracking — fires selectionClick each time scroll crosses an item boundary
+  int _surahHapticTick = 0;
+  int _juzHapticTick = 0;
+  static const _kItemExtent = 64.0; // approx layout height of each list tile (42px avatar + 11*2 padding)
+
   @override
   void initState() {
     super.initState();
     WidgetService.updateWidget();
     _fetchSurahs();
     _searchController.addListener(_onSearchChanged);
+    _surahScrollController.addListener(_onSurahScroll);
+    _juzScrollController.addListener(_onJuzScroll);
     _syncBookmarks();
     _checkForUpdates();
+  }
+
+  void _onSurahScroll() {
+    final tick = (_surahScrollController.offset / _kItemExtent).round();
+    if (tick != _surahHapticTick) {
+      _surahHapticTick = tick;
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  void _onJuzScroll() {
+    final tick = (_juzScrollController.offset / _kItemExtent).round();
+    if (tick != _juzHapticTick) {
+      _juzHapticTick = tick;
+      HapticFeedback.selectionClick();
+    }
   }
 
   Future<void> _checkForUpdates() async {
@@ -105,6 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchDebounce?.cancel();
+    _surahScrollController.removeListener(_onSurahScroll);
+    _juzScrollController.removeListener(_onJuzScroll);
     _surahScrollController.dispose();
     _juzScrollController.dispose();
     super.dispose();
@@ -246,6 +272,13 @@ class _HomeScreenState extends State<HomeScreen> {
     var size = MediaQuery.of(context).size;
 
     showModalBottomSheet(
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeOut,
+        duration: const Duration(milliseconds: 455),
+        reverseDuration: const Duration(milliseconds: 455),
+      ),
+      elevation: 11,
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
@@ -253,10 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
           top: Radius.circular(size.width * .11),
         ),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Column(
+      builder: (ctx) => BlurredSheet(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
@@ -333,7 +367,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _menuTile(
@@ -529,7 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(11, 11, 11, 11),
                   child: Transform.scale(
-                    scale: 0.85,
+                    scale: 0.9,
                     child: _LastReadCard(
                       showJuz: _showJuz,
                       settings: settings,
@@ -1013,16 +1048,16 @@ class _LastReadCardState extends State<_LastReadCard>
     // StarBorder(points: 5, innerRadiusRatio: 0.46, pointRounding: 0.2, valleyRounding: 0.1),
     StarBorder(
       points: 4,
-      innerRadiusRatio: 0.63,
-      pointRounding: 0.4,
+      innerRadiusRatio: 0.67,
+      pointRounding: 0.55,
       rotation: 45,
     ),
-    StarBorder(points: 6, innerRadiusRatio: 0.72, pointRounding: 0.4),
+    StarBorder(points: 6, innerRadiusRatio: 0.72, pointRounding: 0.45),
     CircleBorder(eccentricity: 1.0),
     StarBorder(
       points: 3,
-      innerRadiusRatio: 0.36,
-      pointRounding: 0.5,
+      innerRadiusRatio: 0.5,
+      pointRounding: 0.67,
       valleyRounding: 0.3,
     ),
   ];
@@ -1035,7 +1070,7 @@ class _LastReadCardState extends State<_LastReadCard>
     _displayingJuz = widget.showJuz;
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1199),
+      duration: const Duration(milliseconds: 955),
     );
 
     _widthFactor = TweenSequence<double>([
@@ -1044,14 +1079,14 @@ class _LastReadCardState extends State<_LastReadCard>
           begin: 1.0,
           end: 0.0,
         ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 68,
+        weight: 21,
       ),
       TweenSequenceItem(
         tween: Tween(
           begin: 0.0,
           end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 68,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 21,
       ),
     ]).animate(_ctrl);
 
@@ -1061,15 +1096,15 @@ class _LastReadCardState extends State<_LastReadCard>
           begin: 1.0,
           end: 0.0,
         ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 31,
+        weight: 21,
       ),
-      TweenSequenceItem(tween: ConstantTween(0.0), weight: 14),
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 21),
       TweenSequenceItem(
         tween: Tween(
           begin: 0.0,
           end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 68,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 21,
       ),
     ]).animate(_ctrl);
 
@@ -1077,16 +1112,16 @@ class _LastReadCardState extends State<_LastReadCard>
       TweenSequenceItem(
         tween: Tween(
           begin: 0.0,
-          end: 11.0,
+          end: 21.0,
         ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 11,
+        weight: 21,
       ),
       TweenSequenceItem(
         tween: Tween(
-          begin: 11.0,
+          begin: 21.0,
           end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 11,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 21,
       ),
     ]).animate(_ctrl);
 
@@ -1168,121 +1203,66 @@ class _LastReadCardState extends State<_LastReadCard>
         final blur = _blurSigma.value;
         final blurProg = (blur / 20.0).clamp(0.0, 1.0);
 
-        Widget card = SizedBox(
-          width: w,
-          height: h,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: ShapeDecoration(
-                    shape: shape,
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xff34da15), const Color(0xFF000000)]
-                          : [
-                              const Color(0xff34da15),
-                              const Color.fromARGB(255, 40, 190, 14),
-                              const Color(0xFF0B4300),
-                            ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: ClipPath(
-                    clipper: ShapeBorderClipper(shape: shape),
-                    child: Opacity(
-                      opacity: opacity,
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            right: 16,
-                            top: 0,
-                            bottom: 0,
-                            child: Image.asset(
-                              "assets/images/logo_new.png",
-                              width: 90,
-                              height: 90,
-                              color: Colors.white.withValues(
-                                alpha: isDark ? 0.31 : 0.27,
-                              ),
-                            ),
-                            // Icon(
-                            //   isDark
-                            //       ? CupertinoIcons.moon_stars_fill
-                            //       : CupertinoIcons.cloud_sun_fill,
-                            //   size: 90,
-                            //   color: Colors.white.withValues(
-                            //     alpha: isDark ? 0.31 : 0.27,
-                            //   ),
-                            // ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(28, 0, 100, 0),
-                            child: Align(
-                              alignment: AlignmentGeometry.centerLeft,
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Continue reading from...',
-                                      style: GoogleFonts.poppins(
-                                        color: isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.7,
-                                              )
-                                            : Colors.black.withValues(
-                                                alpha: 0.7,
-                                              ),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w400,
-                                        letterSpacing: 0.4,
-                                        height: 1.2,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${_title()}, ${_subtitle()}',
-                                      style: GoogleFonts.poppins(
-                                        color: isDark
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontSize: sw * 0.037,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.3,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+        // Contents only (logo + text) — blur these, not the card background
+        Widget innerContents = Stack(
+          children: [
+            Positioned(
+              right: 16,
+              top: 0,
+              bottom: 0,
+              child: Image.asset(
+                "assets/images/logo_new.png",
+                width: 90,
+                height: 90,
+                color: Colors.white.withValues(
+                  alpha: isDark ? 0.31 : 0.27,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 0, 100, 0),
+              child: Align(
+                alignment: AlignmentGeometry.centerLeft,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Continue reading from...',
+                        style: GoogleFonts.poppins(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.7)
+                              : Colors.black.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.4,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
+                      Text(
+                        '${_title()}, ${_subtitle()}',
+                        style: GoogleFonts.poppins(
+                          color: isDark ? Colors.white : Colors.black,
+                          fontSize: sw * 0.037,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ),
-              if (isDark)
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _ShapeBorderStrokePainter(
-                      shape: shape,
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         );
 
         if (blur > 0.3) {
           final edgeH = 0.05 + 0.15 * blurProg;
           final edgeV = 0.03 + 0.08 * blurProg;
-          card = ImageFiltered(
+          innerContents = ImageFiltered(
             imageFilter: ImageFilter.blur(
               sigmaX: blur,
               sigmaY: blur,
@@ -1314,11 +1294,54 @@ class _LastReadCardState extends State<_LastReadCard>
                   stops: [0.0, edgeV, 1.0 - edgeV, 1.0],
                 ).createShader(bounds),
                 blendMode: BlendMode.dstIn,
-                child: card,
+                child: innerContents,
               ),
             ),
           );
         }
+
+        Widget card = SizedBox(
+          width: w,
+          height: h,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  decoration: ShapeDecoration(
+                    shape: shape,
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xff34da15), const Color(0xFF000000)]
+                          : [
+                              const Color(0xff34da15),
+                              const Color.fromARGB(255, 40, 190, 14),
+                              const Color(0xFF0B4300),
+                            ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: ClipPath(
+                    clipper: ShapeBorderClipper(shape: shape),
+                    child: Opacity(
+                      opacity: 1,
+                      child: innerContents,
+                    ),
+                  ),
+                ),
+              ),
+              if (isDark)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _ShapeBorderStrokePainter(
+                      shape: shape,
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
 
         return Center(
           child: GestureDetector(onTap: widget.onTap, child: card),
