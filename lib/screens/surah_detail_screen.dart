@@ -889,7 +889,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                             // ),
                             if (showBasmalaHeader)
                               Padding(
-                                padding: const EdgeInsets.only(top: 17),
+                                padding: EdgeInsets.only(top: size.shortestSide * .075),
                                 child: Text(
                                   'g',
                                   style: TextStyle(
@@ -905,7 +905,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                 ),
                               )
                             else
-                              SizedBox(height: 11),
+                              SizedBox(height: size.shortestSide * .075),
                           ],
                         );
                       }
@@ -930,7 +930,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: AppBar().preferredSize.height * .21,
+                          bottom: AppBar().preferredSize.height * .71,
+                          left: size.width * .035,
+                          right: size.width * .035,
                         ),
                         child: InkWell(
                           splashColor: Colors.transparent,
@@ -943,10 +945,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                             );
                           },
                           onTap: () => _playAyah(ayah['numberInSurah']),
-                          child: Transform.scale(
-                            scale: 0.9,
-                            alignment: Alignment.center,
-                            child: Card(
+                          child: Card(
                               semanticContainer: false,
                               surfaceTintColor: Colors.transparent,
                               color: Colors.transparent,
@@ -1120,7 +1119,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                             r'([\u06D6-\u06DC])',
                                                           ),
                                                           (match) =>
-                                                              '   ${match.group(0)} ',
+                                                              '${match.group(0)}',
                                                         ),
                                                         TextStyle(
                                                           fontFamily:
@@ -1146,7 +1145,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                         r'([\u06D6-\u06DC])',
                                                       ),
                                                       (match) =>
-                                                          '      ${match.group(0)} ',
+                                                          '${match.group(0)}',
                                                     ),
                                                     textAlign: TextAlign.right,
                                                     textDirection:
@@ -1519,7 +1518,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                 ],
                               ),
                             ),
-                          ),
                         ),
                       );
                     },
