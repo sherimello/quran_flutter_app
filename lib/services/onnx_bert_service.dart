@@ -16,6 +16,7 @@ class OnnxBertService {
   OrtSessionOptions? _sessionOptions;
   BertTokenizer? _tokenizer;
   bool _isLoaded = false;
+  bool _isInferring = false;
 
   bool get isLoaded => _isLoaded;
 
@@ -68,6 +69,9 @@ class OnnxBertService {
       final loaded = await initialize();
       if (!loaded) return null;
     }
+
+    if (_isInferring) return null;
+    _isInferring = true;
 
     try {
       // Tokenize input
@@ -153,6 +157,8 @@ class OnnxBertService {
     } catch (e) {
       print('Error running BERT inference: $e');
       return null;
+    } finally {
+      _isInferring = false;
     }
   }
 

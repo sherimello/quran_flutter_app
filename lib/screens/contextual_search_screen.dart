@@ -88,6 +88,8 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
       return;
     }
 
+    if (_isSearching) return;
+
     setState(() {
       _isSearching = true;
       _errorMessage = null;

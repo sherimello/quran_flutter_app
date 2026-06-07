@@ -1235,7 +1235,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                                 )
                                                           : Colors.white
                                                                 .withValues(
-                                                                  alpha: 0.05,
+                                                                  alpha: 0.11,
                                                                 ),
                                                       borderRadius:
                                                           BorderRadius.circular(
@@ -1379,7 +1379,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                                                               )
                                                         : Colors.white
                                                               .withValues(
-                                                                alpha: 0.05,
+                                                                alpha: 0.11,
                                                               ),
                                                     borderRadius:
                                                         BorderRadius.circular(
