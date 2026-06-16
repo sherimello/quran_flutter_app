@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/settings_provider.dart';
 import '../services/tajweed_service.dart';
@@ -262,26 +263,26 @@ class SettingsScreen extends StatelessWidget {
                           children: [
                             // Row(
                             //   children: [
-                                // Container(
-                                //   width: 3,
-                                //   height: 13,
-                                //   decoration: BoxDecoration(
-                                //     color: primary,
-                                //     borderRadius: BorderRadius.circular(2),
-                                //   ),
-                                // ),
-                                // const SizedBox(width: 8),
-                                // Text(
-                                //   'Color Legend',
-                                //   style: GoogleFonts.poppins(
-                                //     fontSize: 11,
-                                //     fontWeight: FontWeight.w700,
-                                //     color: isDark
-                                //         ? Colors.white38
-                                //         : Colors.black38,
-                                //     letterSpacing: 0.8,
-                                //   ),
-                                // ),
+                            // Container(
+                            //   width: 3,
+                            //   height: 13,
+                            //   decoration: BoxDecoration(
+                            //     color: primary,
+                            //     borderRadius: BorderRadius.circular(2),
+                            //   ),
+                            // ),
+                            // const SizedBox(width: 8),
+                            // Text(
+                            //   'Color Legend',
+                            //   style: GoogleFonts.poppins(
+                            //     fontSize: 11,
+                            //     fontWeight: FontWeight.w700,
+                            //     color: isDark
+                            //         ? Colors.white38
+                            //         : Colors.black38,
+                            //     letterSpacing: 0.8,
+                            //   ),
+                            // ),
                             //   ],
                             // ),
                             const SizedBox(height: 10),
@@ -329,6 +330,93 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              _SectionLabel(label: 'AI Search', primary: primary),
+              const SizedBox(height: 10),
+              _sectionCard(
+                isDark,
+                child: Column(
+                  children: [
+                    _SegmentRow(
+                      label: 'AI Provider',
+                      icon: CupertinoIcons.sparkles,
+                      subtitle: 'For contextual verse search',
+                      options: const ['None', 'Groq', 'Cohere'],
+                      selected: settings.aiProvider == 'groq'
+                          ? 'Groq'
+                          : settings.aiProvider == 'cohere'
+                          ? 'Cohere'
+                          : 'None',
+                      onSelect: (val) => settings.setAiProvider(
+                        val == 'Groq'
+                            ? 'groq'
+                            : val == 'Cohere'
+                            ? 'cohere'
+                            : 'none',
+                      ),
+                      isDark: isDark,
+                      primary: primary,
+                    ),
+                    if (settings.aiProvider != 'none') ...[
+                      if (settings.aiProvider == 'groq') ...[
+                        _ApiKeyRow(
+                          key: const ValueKey('groq_key'),
+                          label: 'Groq API Key',
+                          isDark: isDark,
+                          primary: primary,
+                          currentKey: settings.groqApiKey,
+                          onChanged: settings.setGroqApiKey,
+                        ),
+                        _ApiKeyGuide(
+                          isDark: isDark,
+                          url: 'https://console.groq.com/keys',
+                          steps: const [
+                            'Go to console.groq.com and sign up for free',
+                            'Open the API Keys section from the left sidebar',
+                            'Click "Create API Key", give it a name, and copy it here',
+                          ],
+                          note:
+                              'Free tier — fast inference on LLaMA, Gemma & Mistral models with generous rate limits.',
+                        ),
+                      ],
+                      if (settings.aiProvider == 'cohere') ...[
+                        _ApiKeyRow(
+                          key: const ValueKey('cohere_key'),
+                          label: 'Cohere API Key',
+                          isDark: isDark,
+                          primary: primary,
+                          currentKey: settings.cohereApiKey,
+                          onChanged: settings.setCohereApiKey,
+                        ),
+                        _ApiKeyGuide(
+                          isDark: isDark,
+                          url: 'https://dashboard.cohere.com/api-keys',
+                          steps: const [
+                            'Go to dashboard.cohere.com and create a free account',
+                            'Navigate to "API Keys" in the left menu',
+                            'Click "New Trial Key", then copy the key here',
+                          ],
+                          note:
+                              'Trial key is free — Command R+ and Command A are ideal for Quranic context search.',
+                        ),
+                      ],
+                      _ModelDropdownRow(
+                        isDark: isDark,
+                        primary: primary,
+                        provider: settings.aiProvider,
+                        selectedModel: settings.aiProvider == 'groq'
+                            ? settings.groqModel
+                            : settings.cohereModel,
+                        onChanged: settings.aiProvider == 'groq'
+                            ? settings.setGroqModel
+                            : settings.setCohereModel,
                       ),
                     ],
                   ],
@@ -399,9 +487,9 @@ class SettingsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.17),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        // border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -738,7 +826,11 @@ class _SliderRow extends StatelessWidget {
                       bottomRight: Radius.circular(size.width * .75),
                     ),
                   ),
-                  child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Flexible(
@@ -772,7 +864,9 @@ class _SliderRow extends StatelessWidget {
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -785,8 +879,12 @@ class _SliderRow extends StatelessWidget {
                         data: SliderThemeData(
                           padding: EdgeInsets.zero,
                           trackHeight: 5,
-                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 8,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 18,
+                          ),
                           activeTrackColor: primary,
                           thumbColor: primary,
                           inactiveTrackColor: isDark
@@ -837,7 +935,6 @@ class _SwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     var size = MediaQuery.of(context).size;
 
     return Padding(
@@ -921,8 +1018,7 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    var size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
 
     return InkWell(
       onTap: onTap,
@@ -943,7 +1039,11 @@ class _NavRow extends StatelessWidget {
                   bottomRight: Radius.circular(size.width * .75),
                 ),
               ),
-              child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface),
+              child: Icon(
+                icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -981,6 +1081,313 @@ class _NavRow extends StatelessWidget {
                 CupertinoIcons.chevron_forward,
                 size: 12,
                 color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ApiKeyRow extends StatefulWidget {
+  final String label;
+  final bool isDark;
+  final Color primary;
+  final String currentKey;
+  final void Function(String) onChanged;
+
+  const _ApiKeyRow({
+    super.key,
+    required this.label,
+    required this.isDark,
+    required this.primary,
+    required this.currentKey,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ApiKeyRow> createState() => _ApiKeyRowState();
+}
+
+class _ApiKeyRowState extends State<_ApiKeyRow> {
+  late final TextEditingController _controller;
+  bool _obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentKey);
+  }
+
+  @override
+  void didUpdateWidget(_ApiKeyRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync controller when the persisted key loads in from SharedPreferences
+    // but don't interrupt the user's active typing (controller already matches)
+    if (widget.currentKey != oldWidget.currentKey &&
+        _controller.text != widget.currentKey) {
+      _controller.text = widget.currentKey;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 4, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xff34da15),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(size.width * .65),
+                bottomLeft: Radius.circular(size.width * .5),
+                topRight: Radius.circular(size.width * .75),
+                bottomRight: Radius.circular(size.width * .75),
+              ),
+            ),
+            child: Icon(
+              CupertinoIcons.lock,
+              size: 18,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              obscureText: _obscure,
+              style: GoogleFonts.poppins(fontSize: 13),
+              onChanged: widget.onChanged,
+              decoration: InputDecoration(
+                labelText: widget.label,
+                labelStyle: GoogleFonts.poppins(fontSize: 12),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+                    size: 18,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModelDropdownRow extends StatelessWidget {
+  final bool isDark;
+  final Color primary;
+  final String provider;
+  final String selectedModel;
+  final void Function(String) onChanged;
+
+  static const _groqModels = <String, String>{
+    'llama-3.3-70b-versatile': 'LLaMA 3.3 70B',
+    'llama-3.1-8b-instant': 'LLaMA 3.1 8B (Fast)',
+    'gemma2-9b-it': 'Gemma 2 9B',
+    'mixtral-8x7b-32768': 'Mixtral 8x7B',
+    'deepseek-r1-distill-llama-70b': 'DeepSeek R1 70B',
+    'qwen-qwq-32b': 'Qwen QwQ 32B',
+  };
+
+  static const _cohereModels = <String, String>{
+    'command-a-03-2025': 'Command A (2025)',
+    'command-r-plus': 'Command R+',
+    'command-r': 'Command R',
+    'command-light': 'Command Light',
+  };
+
+  const _ModelDropdownRow({
+    required this.isDark,
+    required this.primary,
+    required this.provider,
+    required this.selectedModel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final models = provider == 'groq' ? _groqModels : _cohereModels;
+    final effectiveModel = models.containsKey(selectedModel)
+        ? selectedModel
+        : models.keys.first;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 4, 16, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xff34da15),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(size.width * .65),
+                bottomLeft: Radius.circular(size.width * .5),
+                topRight: Radius.circular(size.width * .75),
+                bottomRight: Radius.circular(size.width * .75),
+              ),
+            ),
+            child: Icon(
+              CupertinoIcons.cube_box,
+              size: 18,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Model',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    height: 0,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                DropdownButton<String>(
+                  value: effectiveModel,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  dropdownColor: isDark
+                      ? const Color(0xFF1A1A1A)
+                      : Colors.white,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                  items: models.entries
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e.key,
+                          child: Text(e.value),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) onChanged(val);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApiKeyGuide extends StatelessWidget {
+  final bool isDark;
+  final String url;
+  final List<String> steps;
+  final String note;
+
+  const _ApiKeyGuide({
+    required this.isDark,
+    required this.url,
+    required this.steps,
+    required this.note,
+  });
+
+  Future<void> _launch() async {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dim = isDark
+        ? Colors.white.withValues(alpha: 0.55)
+        : Colors.black.withValues(alpha: 0.5);
+    final accent = const Color(0xff34da15);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(50, 0, 16, 12),
+      child: Container(
+        padding: const EdgeInsets.all(17),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: isDark ? 0.09 : 0.07),
+          borderRadius: BorderRadius.circular(23),
+          // border: Border.all(color: accent.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: _launch,
+              child: Row(
+                children: [
+                  Icon(CupertinoIcons.link, size: 13, color: accent),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      url.replaceFirst('https://', ''),
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: accent,
+                        decoration: TextDecoration.underline,
+                        decorationColor: accent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...steps.asMap().entries.map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${e.key + 1}. ',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: dim,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        e.value,
+                        style: GoogleFonts.poppins(fontSize: 11, color: dim),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              note,
+              style: GoogleFonts.poppins(
+                fontSize: 10.5,
+                fontStyle: FontStyle.italic,
+                color: dim.withValues(alpha: 0.75),
               ),
             ),
           ],

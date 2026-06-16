@@ -245,6 +245,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     var size = MediaQuery.of(context).size;
 
     showModalBottomSheet(
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeOut,
+        duration: const Duration(milliseconds: 455),
+        reverseDuration: const Duration(milliseconds: 455),
+      ),
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

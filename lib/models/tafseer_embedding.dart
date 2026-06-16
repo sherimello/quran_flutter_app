@@ -74,12 +74,29 @@ class TafseerEmbedding {
 class SearchResult {
   final TafseerEmbedding entry;
   final double similarity;
+  final String explanation;
+  final String translation;
 
-  SearchResult({required this.entry, required this.similarity});
+  SearchResult({
+    required this.entry,
+    required this.similarity,
+    this.explanation = '',
+    this.translation = '',
+  });
+
+  SearchResult copyWith({String? translation, String? explanation}) {
+    return SearchResult(
+      entry: entry,
+      similarity: similarity,
+      explanation: explanation ?? this.explanation,
+      translation: translation ?? this.translation,
+    );
+  }
 
   int get surah => entry.surah;
   int get ayah => entry.ayah;
   String get verseKey => entry.verseKey;
   String get text => entry.text;
   String get snippet => entry.snippet;
+  String get displayText => translation.isNotEmpty ? translation : snippet;
 }

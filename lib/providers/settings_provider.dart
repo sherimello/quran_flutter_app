@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/supabase_service.dart';
+
 class SettingsProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   double _arabicFontSize = 29.0;
@@ -139,11 +141,98 @@ class SettingsProvider with ChangeNotifier {
   bool _enableTajweed = false;
   bool get enableTajweed => _enableTajweed;
 
+  // AI Search Settings
+  String _aiProvider = 'none'; // 'none', 'groq', 'cohere'
+  String _groqApiKey = '';
+  String _groqModel = 'llama-3.3-70b-versatile';
+  String _cohereApiKey = '';
+  String _cohereModel = 'command-r-plus';
+
+  String get aiProvider => _aiProvider;
+  String get groqApiKey => _groqApiKey;
+  String get groqModel => _groqModel;
+  String get cohereApiKey => _cohereApiKey;
+  String get cohereModel => _cohereModel;
+
   Future<void> setEnableTajweed(bool value) async {
     _enableTajweed = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('enable_tajweed', value);
     notifyListeners();
+  }
+
+  Future<void> setAiProvider(String provider) async {
+    _aiProvider = provider;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ai_provider', provider);
+    notifyListeners();
+    _syncAiKeysToSupabase();
+  }
+
+  Future<void> setGroqApiKey(String key) async {
+    _groqApiKey = key;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('groq_api_key', key);
+    notifyListeners();
+    _syncAiKeysToSupabase();
+  }
+
+  Future<void> setGroqModel(String model) async {
+    _groqModel = model;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('groq_model', model);
+    notifyListeners();
+    _syncAiKeysToSupabase();
+  }
+
+  Future<void> setCohereApiKey(String key) async {
+    _cohereApiKey = key;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cohere_api_key', key);
+    notifyListeners();
+    _syncAiKeysToSupabase();
+  }
+
+  Future<void> setCohereModel(String model) async {
+    _cohereModel = model;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cohere_model', model);
+    notifyListeners();
+    _syncAiKeysToSupabase();
+  }
+
+  /// Push current AI keys to Supabase. Fire-and-forget — fails silently.
+  void _syncAiKeysToSupabase() {
+    SupabaseService().saveAiKeys(
+      aiProvider: _aiProvider,
+      groqApiKey: _groqApiKey,
+      groqModel: _groqModel,
+      cohereApiKey: _cohereApiKey,
+      cohereModel: _cohereModel,
+    );
+  }
+
+  /// Pull AI keys from Supabase and overwrite local state + prefs.
+  /// Called once on startup after SharedPreferences load.
+  Future<void> _loadAiKeysFromSupabase() async {
+    try {
+      final cloud = await SupabaseService().loadAiKeys();
+      if (cloud == null) return;
+      _aiProvider = cloud['ai_provider']!;
+      _groqApiKey = cloud['groq_api_key']!;
+      _groqModel = cloud['groq_model']!;
+      _cohereApiKey = cloud['cohere_api_key']!;
+      _cohereModel = cloud['cohere_model']!;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('ai_provider', _aiProvider);
+      await prefs.setString('groq_api_key', _groqApiKey);
+      await prefs.setString('groq_model', _groqModel);
+      await prefs.setString('cohere_api_key', _cohereApiKey);
+      await prefs.setString('cohere_model', _cohereModel);
+      notifyListeners();
+    } catch (_) {
+      // Fail silently — local prefs remain the source of truth
+    }
   }
 
   // Last Read Methods
@@ -189,6 +278,11 @@ class SettingsProvider with ChangeNotifier {
         prefs.getString('wbw_transliteration') ?? 'en_trans';
     _enableTajweed = prefs.getBool('enable_tajweed') ?? false;
     _showWbwTransliteration = prefs.getBool('show_wbw_transliteration') ?? true;
+    _aiProvider = prefs.getString('ai_provider') ?? 'none';
+    _groqApiKey = prefs.getString('groq_api_key') ?? '';
+    _groqModel = prefs.getString('groq_model') ?? 'llama-3.3-70b-versatile';
+    _cohereApiKey = prefs.getString('cohere_api_key') ?? '';
+    _cohereModel = prefs.getString('cohere_model') ?? 'command-r-plus';
 
     // Load Last Read data
     _lastReadSurah = prefs.getInt('last_read_surah');
@@ -198,5 +292,8 @@ class SettingsProvider with ChangeNotifier {
     _wasLastReadJuz = prefs.getBool('was_last_read_juz') ?? false;
 
     notifyListeners();
+
+    // Overlay with cloud AI keys if user is logged in (async, non-blocking)
+    _loadAiKeysFromSupabase();
   }
 }

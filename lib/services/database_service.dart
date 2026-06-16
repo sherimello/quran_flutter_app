@@ -810,6 +810,30 @@ class DatabaseService {
     }
   }
 
+  /// Fetch English translations for a list of {surah, ayah} references.
+  /// Returns a map keyed as "${surah}_${ayah}" → translation text.
+  Future<Map<String, String>> getBulkTranslations(
+    List<Map<String, int>> references,
+  ) async {
+    if (references.isEmpty) return {};
+    final db = await quranDatabase;
+    final Map<String, String> result = {};
+    for (final ref in references) {
+      final rows = await db.query(
+        'terjemahan_quran',
+        columns: ['text'],
+        where: 'sura = ? AND aya = ?',
+        whereArgs: [ref['surah'], ref['ayah']],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        result['${ref['surah']}_${ref['ayah']}'] =
+            rows.first['text'] as String;
+      }
+    }
+    return result;
+  }
+
   /// Search English translation text using SQL LIKE (fallback for keyword search)
   Future<List<Map<String, dynamic>>> searchEnglishKeywords(String query) async {
     try {

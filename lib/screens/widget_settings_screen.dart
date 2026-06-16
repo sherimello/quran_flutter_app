@@ -235,6 +235,12 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
         : 'qalammajeed3';
 
     final selectedAyah = await showModalBottomSheet<Map<String, dynamic>>(
+      sheetAnimationStyle: AnimationStyle(
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeOut,
+        duration: const Duration(milliseconds: 455),
+        reverseDuration: const Duration(milliseconds: 455),
+      ),
       context: context,
       isScrollControlled: true,
       builder: (ctx) {

@@ -206,4 +206,72 @@ class SupabaseService {
     }
     return null;
   }
+
+  // ---------------------------------------------------------------------------
+  // AI Keys
+  // Required Supabase table (run once in your Supabase SQL editor):
+  //
+  //   CREATE TABLE user_ai_keys (
+  //     user_id       uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  //     ai_provider   text NOT NULL DEFAULT 'none',
+  //     groq_api_key  text NOT NULL DEFAULT '',
+  //     groq_model    text NOT NULL DEFAULT 'llama-3.3-70b-versatile',
+  //     cohere_api_key text NOT NULL DEFAULT '',
+  //     cohere_model  text NOT NULL DEFAULT 'command-r-plus',
+  //     updated_at    timestamptz NOT NULL DEFAULT now()
+  //   );
+  //   ALTER TABLE user_ai_keys ENABLE ROW LEVEL SECURITY;
+  //   CREATE POLICY "own_ai_keys" ON user_ai_keys
+  //     FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  // ---------------------------------------------------------------------------
+
+  /// Upsert the user's AI provider settings. Silently no-ops when not logged in.
+  Future<void> saveAiKeys({
+    required String aiProvider,
+    required String groqApiKey,
+    required String groqModel,
+    required String cohereApiKey,
+    required String cohereModel,
+  }) async {
+    if (currentUser == null) return;
+    try {
+      await _client.from('user_ai_keys').upsert({
+        'user_id': currentUser!.id,
+        'ai_provider': aiProvider,
+        'groq_api_key': groqApiKey,
+        'groq_model': groqModel,
+        'cohere_api_key': cohereApiKey,
+        'cohere_model': cohereModel,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('Failed to save AI keys to Supabase: $e');
+    }
+  }
+
+  /// Returns the user's saved AI keys from Supabase, or null if not logged in
+  /// or no data exists yet.
+  Future<Map<String, String>?> loadAiKeys() async {
+    if (currentUser == null) return null;
+    try {
+      final response = await _client
+          .from('user_ai_keys')
+          .select()
+          .eq('user_id', currentUser!.id)
+          .maybeSingle();
+      if (response == null) return null;
+      return {
+        'ai_provider': (response['ai_provider'] as String?) ?? 'none',
+        'groq_api_key': (response['groq_api_key'] as String?) ?? '',
+        'groq_model':
+            (response['groq_model'] as String?) ?? 'llama-3.3-70b-versatile',
+        'cohere_api_key': (response['cohere_api_key'] as String?) ?? '',
+        'cohere_model':
+            (response['cohere_model'] as String?) ?? 'command-r-plus',
+      };
+    } catch (e) {
+      print('Failed to load AI keys from Supabase: $e');
+      return null;
+    }
+  }
 }
