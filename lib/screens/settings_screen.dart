@@ -15,9 +15,16 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final primary = Theme.of(context).colorScheme.primary;
-        final size = MediaQuery.of(context).size;
+        final isDark = Theme
+            .of(context)
+            .brightness == Brightness.dark;
+        final primary = Theme
+            .of(context)
+            .colorScheme
+            .primary;
+        final size = MediaQuery
+            .of(context)
+            .size;
 
         return Scaffold(
           appBar: AppBar(
@@ -157,9 +164,10 @@ class SettingsScreen extends StatelessWidget {
                       selected: settings.arabicScript == 'utsmani'
                           ? 'Uthmani'
                           : 'Indopak',
-                      onSelect: (val) => settings.setArabicScript(
-                        val == 'Uthmani' ? 'utsmani' : 'indopak',
-                      ),
+                      onSelect: (val) =>
+                          settings.setArabicScript(
+                            val == 'Uthmani' ? 'utsmani' : 'indopak',
+                          ),
                       isDark: isDark,
                       primary: primary,
                     ),
@@ -172,9 +180,10 @@ class SettingsScreen extends StatelessWidget {
                       selected: settings.translation == 'sahih'
                           ? 'Sahih Int\'l'
                           : 'Jalalayn',
-                      onSelect: (val) => settings.setTranslation(
-                        val == 'Sahih Int\'l' ? 'sahih' : 'jalalayn',
-                      ),
+                      onSelect: (val) =>
+                          settings.setTranslation(
+                            val == 'Sahih Int\'l' ? 'sahih' : 'jalalayn',
+                          ),
                       isDark: isDark,
                       primary: primary,
                     ),
@@ -189,13 +198,14 @@ class SettingsScreen extends StatelessWidget {
                           : settings.pronunciation == 'latin'
                           ? 'Latin'
                           : 'None',
-                      onSelect: (val) => settings.setPronunciation(
-                        val == 'Latin+Eng'
-                            ? 'latin_english'
-                            : val == 'Latin'
-                            ? 'latin'
-                            : 'none',
-                      ),
+                      onSelect: (val) =>
+                          settings.setPronunciation(
+                            val == 'Latin+Eng'
+                                ? 'latin_english'
+                                : val == 'Latin'
+                                ? 'latin'
+                                : 'none',
+                          ),
                       isDark: isDark,
                       primary: primary,
                     ),
@@ -354,13 +364,14 @@ class SettingsScreen extends StatelessWidget {
                           : settings.aiProvider == 'cohere'
                           ? 'Cohere'
                           : 'None',
-                      onSelect: (val) => settings.setAiProvider(
-                        val == 'Groq'
-                            ? 'groq'
-                            : val == 'Cohere'
-                            ? 'cohere'
-                            : 'none',
-                      ),
+                      onSelect: (val) =>
+                          settings.setAiProvider(
+                            val == 'Groq'
+                                ? 'groq'
+                                : val == 'Cohere'
+                                ? 'cohere'
+                                : 'none',
+                          ),
                       isDark: isDark,
                       primary: primary,
                     ),
@@ -383,7 +394,7 @@ class SettingsScreen extends StatelessWidget {
                             'Click "Create API Key", give it a name, and copy it here',
                           ],
                           note:
-                              'Free tier — fast inference on LLaMA, Gemma & Mistral models with generous rate limits.',
+                          'Free tier — fast inference on LLaMA, Gemma & Mistral models with generous rate limits.',
                         ),
                       ],
                       if (settings.aiProvider == 'cohere') ...[
@@ -404,7 +415,7 @@ class SettingsScreen extends StatelessWidget {
                             'Click "New Trial Key", then copy the key here',
                           ],
                           note:
-                              'Trial key is free — Command R+ and Command A are ideal for Quranic context search.',
+                          'Trial key is free — Command R+ and Command A are ideal for Quranic context search.',
                         ),
                       ],
                       _ModelDropdownRow(
@@ -536,13 +547,13 @@ class _AppHeader extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [
-                  primary.withValues(alpha: 0.14),
-                  primary.withValues(alpha: 0.04),
-                ]
+            primary.withValues(alpha: 0.14),
+            primary.withValues(alpha: 0.04),
+          ]
               : [
-                  primary.withValues(alpha: 0.11),
-                  primary.withValues(alpha: 0.03),
-                ],
+            primary.withValues(alpha: 0.11),
+            primary.withValues(alpha: 0.03),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -615,7 +626,9 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    var size = MediaQuery
+        .of(context)
+        .size;
 
     return Row(
       children: [
@@ -633,7 +646,10 @@ class _SectionLabel extends StatelessWidget {
           style: GoogleFonts.poppins(
             fontSize: size.width * .035,
             fontWeight: FontWeight.w700,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: Theme
+                .of(context)
+                .colorScheme
+                .onSurface,
             letterSpacing: 1.5,
           ),
         ),
@@ -665,7 +681,9 @@ class _SegmentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    var size = MediaQuery
+        .of(context)
+        .size;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
@@ -690,7 +708,10 @@ class _SegmentRow extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 18,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: Theme
+                      .of(context)
+                      .colorScheme
+                      .onSurface,
                 ),
               ),
               const SizedBox(width: 12),
@@ -803,7 +824,9 @@ class _SliderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    var size = MediaQuery
+        .of(context)
+        .size;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 16, 16, 8),
@@ -829,7 +852,10 @@ class _SliderRow extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 18,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: Theme
+                        .of(context)
+                        .colorScheme
+                        .onSurface,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -864,9 +890,12 @@ class _SliderRow extends StatelessWidget {
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: Theme.of(
+                                  color: Theme
+                                      .of(
                                     context,
-                                  ).colorScheme.onSurface,
+                                  )
+                                      .colorScheme
+                                      .onSurface,
                                 ),
                               ),
                             ),
@@ -935,7 +964,9 @@ class _SwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    var size = MediaQuery
+        .of(context)
+        .size;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -961,7 +992,10 @@ class _SwitchRow extends StatelessWidget {
             child: Icon(
               icon,
               size: isSubItem ? 16 : 18,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Theme
+                  .of(context)
+                  .colorScheme
+                  .onSurface,
             ),
           ),
           const SizedBox(width: 12),
@@ -1018,7 +1052,9 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery
+        .of(context)
+        .size;
 
     return InkWell(
       onTap: onTap,
@@ -1042,7 +1078,10 @@ class _NavRow extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 18,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: Theme
+                    .of(context)
+                    .colorScheme
+                    .onSurface,
               ),
             ),
             const SizedBox(width: 12),
@@ -1139,7 +1178,9 @@ class _ApiKeyRowState extends State<_ApiKeyRow> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery
+        .of(context)
+        .size;
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 4, 16, 12),
       child: Row(
@@ -1159,7 +1200,10 @@ class _ApiKeyRowState extends State<_ApiKeyRow> {
             child: Icon(
               CupertinoIcons.lock,
               size: 18,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Theme
+                  .of(context)
+                  .colorScheme
+                  .onSurface,
             ),
           ),
           const SizedBox(width: 12),
@@ -1225,7 +1269,9 @@ class _ModelDropdownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery
+        .of(context)
+        .size;
     final models = provider == 'groq' ? _groqModels : _cohereModels;
     final effectiveModel = models.containsKey(selectedModel)
         ? selectedModel
@@ -1250,7 +1296,10 @@ class _ModelDropdownRow extends StatelessWidget {
             child: Icon(
               CupertinoIcons.cube_box,
               size: 18,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Theme
+                  .of(context)
+                  .colorScheme
+                  .onSurface,
             ),
           ),
           const SizedBox(width: 12),
@@ -1280,11 +1329,12 @@ class _ModelDropdownRow extends StatelessWidget {
                   ),
                   items: models.entries
                       .map(
-                        (e) => DropdownMenuItem(
+                        (e) =>
+                        DropdownMenuItem(
                           value: e.key,
                           child: Text(e.value),
                         ),
-                      )
+                  )
                       .toList(),
                   onChanged: (val) {
                     if (val != null) onChanged(val);
@@ -1357,29 +1407,34 @@ class _ApiKeyGuide extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...steps.asMap().entries.map(
-              (e) => Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${e.key + 1}. ',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: dim,
-                      ),
+            ...steps
+                .asMap()
+                .entries
+                .map(
+                  (e) =>
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${e.key + 1}. ',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: dim,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            e.value,
+                            style: GoogleFonts.poppins(
+                                fontSize: 11, color: dim),
+                          ),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      child: Text(
-                        e.value,
-                        style: GoogleFonts.poppins(fontSize: 11, color: dim),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
             ),
             const SizedBox(height: 6),
             Text(
