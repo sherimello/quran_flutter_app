@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'tajweed_service.dart';
 
 const _sajdaVerses = {
   '7:206', '13:15', '16:50', '17:109', '19:58',
@@ -330,7 +331,10 @@ class DatabaseService {
       for (int i = 0; i < arabicResults.length; i++) {
         Map<String, dynamic> ayah = {
           'number': surahNumber, // Surah number (not global verse count)
-          'text': ((arabicResults[i]['text'] as String?) ?? '').replaceAll('﻿', ''),
+          'text': TajweedRenderer.cleanArabicText(
+            (arabicResults[i]['text'] as String?) ?? '',
+            indopak: arabicScript == 'indopak',
+          ),
           'numberInSurah': arabicResults[i]['aya'],
           'surahNumber': surahNumber,
           'surahName': surahName,
@@ -416,7 +420,7 @@ class DatabaseService {
           .map(
             (row) => {
               'word': row['word'],
-              'arabic': row['arabic'],
+              'arabic': TajweedRenderer.cleanArabicText(row['arabic']?.toString() ?? ''),
               'translation': row['translation'],
               'transliteration': row['transliteration'],
             },

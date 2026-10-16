@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/ai_search_service.dart';
 import '../services/supabase_service.dart';
 
 class SettingsProvider with ChangeNotifier {
@@ -148,11 +149,55 @@ class SettingsProvider with ChangeNotifier {
   String _cohereApiKey = '';
   String _cohereModel = 'command-r-plus';
 
+  Map<String, String> _groqModels = Map.from(AiSearchService.defaultGroqModels);
+  Map<String, String> _cohereModels = Map.from(AiSearchService.defaultCohereModels);
+  bool _isFetchingModels = false;
+
   String get aiProvider => _aiProvider;
   String get groqApiKey => _groqApiKey;
   String get groqModel => _groqModel;
   String get cohereApiKey => _cohereApiKey;
   String get cohereModel => _cohereModel;
+
+  Map<String, String> get availableGroqModels => _groqModels;
+  Map<String, String> get availableCohereModels => _cohereModels;
+  bool get isFetchingModels => _isFetchingModels;
+
+  Future<void> refreshLiveModels() async {
+    if (_isFetchingModels) return;
+    _isFetchingModels = true;
+    notifyListeners();
+
+    try {
+      if (_groqApiKey.trim().isNotEmpty) {
+        final fetchedGroq = await AiSearchService().fetchGroqModels(_groqApiKey);
+        if (fetchedGroq.isNotEmpty) {
+          _groqModels = fetchedGroq;
+          if (!_groqModels.containsKey(_groqModel)) {
+            _groqModel = _groqModels.keys.first;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('groq_model', _groqModel);
+          }
+        }
+      }
+      if (_cohereApiKey.trim().isNotEmpty) {
+        final fetchedCohere = await AiSearchService().fetchCohereModels(_cohereApiKey);
+        if (fetchedCohere.isNotEmpty) {
+          _cohereModels = fetchedCohere;
+          if (!_cohereModels.containsKey(_cohereModel)) {
+            _cohereModel = _cohereModels.keys.first;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('cohere_model', _cohereModel);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[SettingsProvider] Failed to fetch live models: $e');
+    } finally {
+      _isFetchingModels = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> setEnableTajweed(bool value) async {
     _enableTajweed = value;
@@ -167,6 +212,7 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString('ai_provider', provider);
     notifyListeners();
     _syncAiKeysToSupabase();
+    refreshLiveModels();
   }
 
   Future<void> setGroqApiKey(String key) async {
@@ -175,6 +221,7 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString('groq_api_key', key);
     notifyListeners();
     _syncAiKeysToSupabase();
+    refreshLiveModels();
   }
 
   Future<void> setGroqModel(String model) async {
@@ -191,6 +238,7 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString('cohere_api_key', key);
     notifyListeners();
     _syncAiKeysToSupabase();
+    refreshLiveModels();
   }
 
   Future<void> setCohereModel(String model) async {
@@ -230,6 +278,7 @@ class SettingsProvider with ChangeNotifier {
       await prefs.setString('cohere_api_key', _cohereApiKey);
       await prefs.setString('cohere_model', _cohereModel);
       notifyListeners();
+      refreshLiveModels();
     } catch (_) {
       // Fail silently — local prefs remain the source of truth
     }
@@ -292,6 +341,7 @@ class SettingsProvider with ChangeNotifier {
     _wasLastReadJuz = prefs.getBool('was_last_read_juz') ?? false;
 
     notifyListeners();
+    refreshLiveModels();
 
     // Overlay with cloud AI keys if user is logged in (async, non-blocking)
     _loadAiKeysFromSupabase();

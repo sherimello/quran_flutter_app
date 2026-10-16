@@ -8,8 +8,23 @@ import '../providers/settings_provider.dart';
 import '../services/tajweed_service.dart';
 import 'widget_settings_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<SettingsProvider>(context, listen: false).refreshLiveModels();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1243,22 +1258,6 @@ class _ModelDropdownRow extends StatelessWidget {
   final String selectedModel;
   final void Function(String) onChanged;
 
-  static const _groqModels = <String, String>{
-    'llama-3.3-70b-versatile': 'LLaMA 3.3 70B',
-    'llama-3.1-8b-instant': 'LLaMA 3.1 8B (Fast)',
-    'gemma2-9b-it': 'Gemma 2 9B',
-    'mixtral-8x7b-32768': 'Mixtral 8x7B',
-    'deepseek-r1-distill-llama-70b': 'DeepSeek R1 70B',
-    'qwen-qwq-32b': 'Qwen QwQ 32B',
-  };
-
-  static const _cohereModels = <String, String>{
-    'command-a-03-2025': 'Command A (2025)',
-    'command-r-plus': 'Command R+',
-    'command-r': 'Command R',
-    'command-light': 'Command Light',
-  };
-
   const _ModelDropdownRow({
     required this.isDark,
     required this.primary,
@@ -1269,13 +1268,14 @@ class _ModelDropdownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery
-        .of(context)
-        .size;
-    final models = provider == 'groq' ? _groqModels : _cohereModels;
+    final size = MediaQuery.of(context).size;
+    final settings = Provider.of<SettingsProvider>(context);
+    final models = provider == 'groq'
+        ? settings.availableGroqModels
+        : settings.availableCohereModels;
     final effectiveModel = models.containsKey(selectedModel)
         ? selectedModel
-        : models.keys.first;
+        : (models.isNotEmpty ? models.keys.first : selectedModel);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 4, 16, 12),
@@ -1296,10 +1296,7 @@ class _ModelDropdownRow extends StatelessWidget {
             child: Icon(
               CupertinoIcons.cube_box,
               size: 18,
-              color: Theme
-                  .of(context)
-                  .colorScheme
-                  .onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(width: 12),
@@ -1307,14 +1304,47 @@ class _ModelDropdownRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Model',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    height: 0,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Model',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 0,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: settings.isFetchingModels ? null : () => settings.refreshLiveModels(),
+                      child: Row(
+                        children: [
+                          if (settings.isFetchingModels)
+                            const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            const Icon(
+                              CupertinoIcons.refresh,
+                              size: 13,
+                              color: Color(0xff34da15),
+                            ),
+                          const SizedBox(width: 4),
+                          Text(
+                            settings.isFetchingModels ? 'Fetching...' : 'Refresh live',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xff34da15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 DropdownButton<String>(
                   value: effectiveModel,

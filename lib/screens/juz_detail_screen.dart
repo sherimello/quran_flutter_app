@@ -13,6 +13,7 @@ import '../services/supabase_service.dart';
 import '../providers/settings_provider.dart';
 import '../data/juz_data.dart';
 import '../services/tajweed_service.dart';
+import '../utils/waqf_spacing.dart';
 import '../widgets/blurred_sheet.dart';
 import '../widgets/auto_hide_scrollbar.dart';
 import 'settings_screen.dart';
@@ -1081,15 +1082,13 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                                 textDirection: TextDirection.rtl,
                                 text: TextSpan(
                                   children: TajweedRenderer.getTajweedSpans(
-                                    displayText.replaceAllMapped(
-                                      RegExp(r'([\u06D6-\u06DC])'),
-                                      (match) => '${match.group(0)}',
-                                    ),
+                                    TajweedRenderer.cleanArabicText(displayText, indopak: arabicFont == 'qalammajeed3'),
                                     TextStyle(
                                       fontFamily: arabicFont,
                                       fontSize: settings.arabicFontSize,
-                                      height: 1.8,
+                                      height: arabicFont == 'qalammajeed3' ? 2.1 : 1.95,
                                       wordSpacing: 0,
+                                      letterSpacing: 0,
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurface,
@@ -1098,18 +1097,20 @@ class _JuzDetailScreenState extends State<JuzDetailScreen> {
                                   ),
                                 ),
                               )
-                            : Text(
-                                displayText.replaceAllMapped(
-                                  RegExp(r'([\u06D6-\u06DC])'),
-                                  (match) => '${match.group(0)}',
+                            : WaqfSpacing.text(
+                                TajweedRenderer.cleanArabicText(
+                                  displayText,
+                                  indopak: arabicFont == 'qalammajeed3',
                                 ),
+                                indopak: arabicFont == 'qalammajeed3',
                                 textAlign: TextAlign.right,
                                 textDirection: TextDirection.rtl,
                                 style: TextStyle(
                                   fontFamily: arabicFont,
                                   fontSize: settings.arabicFontSize,
-                                  height: 1.8,
+                                  height: arabicFont == 'qalammajeed3' ? 2.1 : 1.95,
                                   wordSpacing: 0,
+                                  letterSpacing: 0,
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.onSurface,

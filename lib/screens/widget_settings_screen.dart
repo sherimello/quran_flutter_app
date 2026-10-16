@@ -5,6 +5,7 @@ import 'package:quran_flutter_app/providers/settings_provider.dart';
 
 import '../services/database_service.dart';
 import '../services/widget_service.dart';
+import '../utils/waqf_spacing.dart';
 import '../widgets/blurred_sheet.dart';
 
 class WidgetSettingsScreen extends StatefulWidget {
@@ -345,14 +346,10 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
-                                        Text(
-                                          ((ayah['text'] ?? ayah['arabic'] ?? '')
-                                                  as String)
-                                              .replaceAllMapped(
-                                                RegExp(r'([\u06D6-\u06DC])'),
-                                                (match) =>
-                                                    '      ${match.group(0)} ',
-                                              ),
+                                        WaqfSpacing.text(
+                                          (ayah['text'] ?? ayah['arabic'] ?? '')
+                                              as String,
+                                          indopak: arabicFont == 'qalammajeed3',
                                           textAlign: TextAlign.right,
                                           textDirection: TextDirection.rtl,
                                           style: TextStyle(

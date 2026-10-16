@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../models/tafseer_embedding.dart';
@@ -37,6 +38,11 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
   void initState() {
     super.initState();
     _loadEmbeddings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<SettingsProvider>(context, listen: false).refreshLiveModels();
+      }
+    });
   }
 
   @override
@@ -152,36 +158,32 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
           });
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[ContextualSearch] Search error: $e\n$stack');
       if (mounted) {
+        String msg = 'Search failed. Please try again.';
+        if (e is http.ClientException) {
+          msg = e.message;
+        } else if (e is ArgumentError) {
+          msg = e.message;
+        } else {
+          final str = e.toString();
+          msg = str.startsWith('Exception: ') ? str.substring(11) : str;
+        }
         setState(() {
           _isSearching = false;
-          _errorMessage = 'Search failed. Please try again.';
+          _errorMessage = msg;
         });
       }
     }
   }
 
-  static const _groqModels = <String, String>{
-    'llama-3.3-70b-versatile': 'LLaMA 3.3 70B',
-    'llama-3.1-8b-instant': 'LLaMA 3.1 8B (Fast)',
-    'gemma2-9b-it': 'Gemma 2 9B',
-    'mixtral-8x7b-32768': 'Mixtral 8x7B',
-    'deepseek-r1-distill-llama-70b': 'DeepSeek R1 70B',
-    'qwen-qwq-32b': 'Qwen QwQ 32B',
-  };
-
-  static const _cohereModels = <String, String>{
-    'command-a-03-2025': 'Command A (2025)',
-    'command-r-plus': 'Command R+',
-    'command-r': 'Command R',
-    'command-light': 'Command Light',
-  };
-
   void _showSearchSettings() {
     final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
+
+    Provider.of<SettingsProvider>(context, listen: false).refreshLiveModels();
 
     showModalBottomSheet(
       sheetAnimationStyle: AnimationStyle(
@@ -205,14 +207,14 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
             child: Consumer<SettingsProvider>(
               builder: (context, settings, _) {
                 final models = settings.aiProvider == 'groq'
-                    ? _groqModels
-                    : _cohereModels;
+                    ? settings.availableGroqModels
+                    : settings.availableCohereModels;
                 final selectedModel = settings.aiProvider == 'groq'
                     ? settings.groqModel
                     : settings.cohereModel;
                 final effectiveModel = models.containsKey(selectedModel)
                     ? selectedModel
-                    : models.keys.first;
+                    : (models.isNotEmpty ? models.keys.first : selectedModel);
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -268,13 +270,46 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
                     ),
                     if (settings.aiProvider != 'none') ...[
                       const SizedBox(height: 20),
-                      Text(
-                        'Model',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Model',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: settings.isFetchingModels ? null : () => settings.refreshLiveModels(),
+                            child: Row(
+                              children: [
+                                if (settings.isFetchingModels)
+                                  const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                else
+                                  const Icon(
+                                    CupertinoIcons.refresh,
+                                    size: 13,
+                                    color: Color(0xff34da15),
+                                  ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  settings.isFetchingModels ? 'Fetching...' : 'Refresh live',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xff34da15),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       DropdownButton<String>(
@@ -342,8 +377,9 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
 
   bool _activeKeyIsSet(SettingsProvider settings) {
     if (settings.aiProvider == 'groq') return settings.groqApiKey.isNotEmpty;
-    if (settings.aiProvider == 'cohere')
+    if (settings.aiProvider == 'cohere') {
       return settings.cohereApiKey.isNotEmpty;
+    }
     return false;
   }
 
@@ -381,7 +417,6 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
         actions: [
           Consumer<SettingsProvider>(
             builder: (context, settings, _) {
-              final isAi = settings.aiProvider != 'none';
               return IconButton(
                 icon: Icon(
                   CupertinoIcons.slider_horizontal_3,
@@ -485,22 +520,35 @@ class _ContextualSearchScreenState extends State<ContextualSearchScreen> {
 
     if (_errorMessage != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              CupertinoIcons.exclamationmark_triangle,
-              size: 48,
-              color: Colors.red,
-            ),
-            const SizedBox(height: 16),
-            Text(_errorMessage!),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadEmbeddings,
-              child: const Text('Retry'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                CupertinoIcons.exclamationmark_triangle,
+                size: 48,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  if (_searchController.text.trim().isNotEmpty) {
+                    _performSearch();
+                  } else {
+                    _loadEmbeddings();
+                  }
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }

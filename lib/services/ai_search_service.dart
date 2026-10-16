@@ -17,9 +17,133 @@ class AiSearchService {
 
   final DatabaseService _dbService = DatabaseService();
 
+  static const Map<String, String> defaultGroqModels = {
+    'llama-3.3-70b-versatile': 'LLaMA 3.3 70B Versatile',
+    'llama-3.1-8b-instant': 'LLaMA 3.1 8B Instant',
+    'llama-3.2-3b-preview': 'LLaMA 3.2 3B Preview',
+    'llama-3.2-1b-preview': 'LLaMA 3.2 1B Preview',
+    'gemma2-9b-it': 'Gemma 2 9B IT',
+    'deepseek-r1-distill-llama-70b': 'DeepSeek R1 70B',
+    'qwen-2.5-coder-32b': 'Qwen 2.5 Coder 32B',
+    'mixtral-8x7b-32768': 'Mixtral 8x7B',
+  };
+
+  static const Map<String, String> defaultCohereModels = {
+    'command-r-plus': 'Command R+',
+    'command-r': 'Command R',
+    'command-a-03-2025': 'Command A (2025)',
+    'command-light': 'Command Light',
+  };
+
+  /// Format raw model ID into user-friendly title
+  static String formatModelLabel(String id) {
+    if (id.isEmpty) return id;
+    if (defaultGroqModels.containsKey(id)) return defaultGroqModels[id]!;
+    if (defaultCohereModels.containsKey(id)) return defaultCohereModels[id]!;
+
+    final parts = id.split(RegExp(r'[-_]'));
+    final formattedParts = parts.map((part) {
+      final p = part.toLowerCase();
+      if (p == 'llama') return 'LLaMA';
+      if (p == 'gemma' || p == 'gemma2') return 'Gemma';
+      if (p == 'deepseek') return 'DeepSeek';
+      if (p == 'qwen') return 'Qwen';
+      if (p == 'mixtral') return 'Mixtral';
+      if (p == 'command') return 'Command';
+      if (p.length <= 3 && RegExp(r'^\d+[akmb]$').hasMatch(p)) return p.toUpperCase();
+      if (p.length == 1) return p.toUpperCase();
+      return p[0].toUpperCase() + p.substring(1);
+    }).toList();
+
+    return formattedParts.join(' ');
+  }
+
+  /// Fetch available Groq models in real-time from API endpoint
+  Future<Map<String, String>> fetchGroqModels(String apiKey) async {
+    final cleanKey = apiKey.trim();
+    if (cleanKey.isEmpty) return Map.from(defaultGroqModels);
+
+    try {
+      final url = Uri.parse('https://api.groq.com/openai/v1/models');
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $cleanKey'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          final Map<String, String> dynamicModels = {};
+          for (final item in data['data']) {
+            if (item is Map && item.containsKey('id')) {
+              final id = item['id'].toString();
+              final isActive = item['active'] == null || item['active'] == true;
+              if (isActive &&
+                  !id.contains('whisper') &&
+                  !id.contains('safetensors') &&
+                  !id.contains('embed')) {
+                dynamicModels[id] = formatModelLabel(id);
+              }
+            }
+          }
+          if (dynamicModels.isNotEmpty) {
+            return dynamicModels;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AiSearch] Error fetching live Groq models: $e');
+    }
+
+    return Map.from(defaultGroqModels);
+  }
+
+  /// Fetch available Cohere models in real-time from API endpoint
+  Future<Map<String, String>> fetchCohereModels(String apiKey) async {
+    final cleanKey = apiKey.trim();
+    if (cleanKey.isEmpty) return Map.from(defaultCohereModels);
+
+    try {
+      final url = Uri.parse('https://api.cohere.com/v1/models');
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $cleanKey'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('models') && data['models'] is List) {
+          final Map<String, String> dynamicModels = {};
+          for (final item in data['models']) {
+            if (item is Map && item.containsKey('name')) {
+              final name = item['name'].toString();
+              final endpoints = item['endpoints'];
+              final isChat = endpoints is List && endpoints.contains('chat');
+              if (isChat || endpoints == null) {
+                dynamicModels[name] = formatModelLabel(name);
+              }
+            }
+          }
+          if (dynamicModels.isNotEmpty) {
+            return dynamicModels;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AiSearch] Error fetching live Cohere models: $e');
+    }
+
+    return Map.from(defaultCohereModels);
+  }
+
+  /// Strip reasoning/thinking blocks enclosed in think tags
+  String _stripThinking(String text) {
+    return text.replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '').trim();
+  }
+
   /// Clean Markdown wrappers from JSON string returned by LLMs
   String _cleanJsonResponse(String text) {
-    text = text.trim();
+    text = _stripThinking(text);
     if (text.startsWith('```json')) {
       text = text.substring(7);
     } else if (text.startsWith('```')) {
@@ -31,25 +155,48 @@ class AiSearchService {
     return text.trim();
   }
 
-  /// Extract JSON object safely from a potentially conversational model response
+  /// Extract JSON object safely from a potentially conversational or reasoning model response
   Map<String, dynamic>? _extractJsonObject(String text) {
+    final cleanedText = _cleanJsonResponse(text);
     try {
-      final start = text.indexOf('{');
-      final end = text.lastIndexOf('}');
+      final start = cleanedText.indexOf('{');
+      final end = cleanedText.lastIndexOf('}');
       if (start != -1 && end != -1 && end > start) {
-        final jsonStr = text.substring(start, end + 1);
+        final jsonStr = cleanedText.substring(start, end + 1);
         return jsonDecode(jsonStr) as Map<String, dynamic>;
       }
     } catch (e) {
       debugPrint('[AiSearch] Error parsing extracted JSON range: $e');
     }
     try {
-      final cleaned = _cleanJsonResponse(text);
-      return jsonDecode(cleaned) as Map<String, dynamic>;
+      return jsonDecode(cleanedText) as Map<String, dynamic>;
     } catch (e) {
       debugPrint('[AiSearch] Direct jsonDecode failed: $e');
     }
     return null;
+  }
+
+  /// Parse user-friendly error messages from API JSON error responses
+  String _parseApiErrorMessage(int statusCode, String responseBody, String providerName) {
+    try {
+      final data = jsonDecode(responseBody);
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('error')) {
+          final errObj = data['error'];
+          if (errObj is Map<String, dynamic> && errObj.containsKey('message')) {
+            return '$providerName: ${errObj['message']}';
+          } else if (errObj is String && errObj.isNotEmpty) {
+            return '$providerName: $errObj';
+          }
+        }
+        if (data.containsKey('message') && data['message'] is String) {
+          return '$providerName: ${data['message']}';
+        }
+      }
+    } catch (_) {
+      // Fallback to raw or status message if body isn't JSON
+    }
+    return '$providerName API returned status $statusCode';
   }
 
   /// Perform AI contextual search using Groq or Cohere
@@ -59,7 +206,8 @@ class AiSearchService {
     required String model,
     required String apiKey,
   }) async {
-    if (apiKey.trim().isEmpty) {
+    final cleanApiKey = apiKey.trim();
+    if (cleanApiKey.isEmpty) {
       throw ArgumentError('API key is empty');
     }
 
@@ -98,14 +246,14 @@ Example:
       responseText = await _callGroq(
         query: query,
         model: model,
-        apiKey: apiKey,
+        apiKey: cleanApiKey,
         systemPrompt: systemPrompt,
       );
     } else if (provider == 'cohere') {
       responseText = await _callCohere(
         query: query,
         model: model,
-        apiKey: apiKey,
+        apiKey: cleanApiKey,
         systemPrompt: systemPrompt,
       );
     } else {
@@ -182,31 +330,76 @@ Example:
     required String systemPrompt,
   }) async {
     final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
-      },
-      body: jsonEncode({
+    final isReasoningModel = model.contains('deepseek') ||
+        model.contains('qwq') ||
+        model.contains('r1');
+
+    Future<http.Response> postGroq({required bool includeResponseFormat}) {
+      final Map<String, dynamic> bodyMap = {
         'model': model,
         'messages': [
           {'role': 'system', 'content': systemPrompt},
           {'role': 'user', 'content': query}
         ],
         'temperature': 0.2,
-        'response_format': {'type': 'json_object'},
-      }),
-    );
+      };
+      if (includeResponseFormat) {
+        bodyMap['response_format'] = {'type': 'json_object'};
+      }
 
-    if (response.statusCode != 200) {
-      throw http.ClientException(
-        'Groq API returned status ${response.statusCode}: ${response.body}',
+      return http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode(bodyMap),
       );
     }
 
+    // Reasoning models do not support response_format on Groq API
+    bool useResponseFormat = !isReasoningModel;
+    var response = await postGroq(includeResponseFormat: useResponseFormat);
+
+    // Auto-retry without response_format if Groq returns 400 for unsupported response_format
+    if (response.statusCode == 400 && useResponseFormat) {
+      final errBody = response.body.toLowerCase();
+      if (errBody.contains('response_format') || errBody.contains('unsupported')) {
+        debugPrint('[AiSearch] Retrying Groq call without response_format for model: $model');
+        response = await postGroq(includeResponseFormat: false);
+      }
+    }
+
+    if (response.statusCode == 404) {
+      throw http.ClientException(
+        'Groq: Model \'$model\' is decommissioned or unavailable. Please select an active model in settings.',
+      );
+    }
+
+    if (response.statusCode != 200) {
+      final errorMessage = _parseApiErrorMessage(response.statusCode, response.body, 'Groq');
+      if (errorMessage.toLowerCase().contains('decommission') ||
+          errorMessage.toLowerCase().contains('does not exist')) {
+        throw http.ClientException(
+          'Groq: Model \'$model\' is decommissioned or unavailable. Please select an active model in settings.',
+        );
+      }
+      throw http.ClientException(errorMessage);
+    }
+
     final data = jsonDecode(response.body);
-    return data['choices'][0]['message']['content'] as String;
+    final choices = data['choices'];
+    if (choices is List && choices.isNotEmpty) {
+      final firstChoice = choices.first;
+      if (firstChoice is Map && firstChoice.containsKey('message')) {
+        final message = firstChoice['message'];
+        if (message is Map && message.containsKey('content')) {
+          return (message['content'] as String?) ?? '';
+        }
+      }
+    }
+
+    throw http.ClientException('Groq API returned an unexpected response structure.');
   }
 
   /// Call Cohere Chat API (v2)
@@ -237,9 +430,8 @@ Example:
     debugPrint('[AiSearch] Cohere status: ${response.statusCode}');
 
     if (response.statusCode != 200) {
-      throw http.ClientException(
-        'Cohere API returned status ${response.statusCode}: ${response.body}',
-      );
+      final errorMessage = _parseApiErrorMessage(response.statusCode, response.body, 'Cohere');
+      throw http.ClientException(errorMessage);
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -253,7 +445,6 @@ Example:
         if (first is Map && first['type'] == 'text') {
           return first['text'] as String;
         }
-        // Some versions return plain string content items
         if (first is String) return first;
       }
     }
@@ -264,7 +455,7 @@ Example:
     }
 
     throw http.ClientException(
-      'Cohere v2: unexpected response shape — could not extract text. Body: ${response.body}',
+      'Cohere v2: unexpected response shape — could not extract text.',
     );
   }
 }

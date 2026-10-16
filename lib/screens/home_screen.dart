@@ -1033,9 +1033,6 @@ class _LastReadCard extends StatefulWidget {
 class _LastReadCardState extends State<_LastReadCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  late final Animation<double> _widthFactor;
-  late final Animation<double> _contentOpacity;
-  late final Animation<double> _blurSigma;
 
   bool _displayingJuz = false;
   bool _midpointFired = false;
@@ -1044,25 +1041,102 @@ class _LastReadCardState extends State<_LastReadCard>
     borderRadius: BorderRadius.all(Radius.circular(1000)),
   );
 
+  int _lastShapeIndex = -1;
+
   static const List<OutlinedBorder> _shapes = [
-    // StarBorder(points: 5, innerRadiusRatio: 0.46, pointRounding: 0.2, valleyRounding: 0.1),
+    // Material 3 Expressive Shape 1: 4-Point Soft Diamond Star
     StarBorder(
       points: 4,
-      innerRadiusRatio: 0.67,
+      innerRadiusRatio: 0.65,
       pointRounding: 0.55,
       rotation: 45,
     ),
-    StarBorder(points: 6, innerRadiusRatio: 0.72, pointRounding: 0.45),
-    CircleBorder(eccentricity: 1.0),
+    // Material 3 Expressive Shape 2: 6-Point Rosette
+    StarBorder(
+      points: 6,
+      innerRadiusRatio: 0.75,
+      pointRounding: 0.5,
+    ),
+    // Material 3 Expressive Shape 3: 8-Point Flower Badge
+    StarBorder(
+      points: 8,
+      innerRadiusRatio: 0.82,
+      pointRounding: 0.6,
+    ),
+    // Material 3 Expressive Shape 4: 12-Point Scalloped Cookie
+    StarBorder(
+      points: 12,
+      innerRadiusRatio: 0.88,
+      pointRounding: 0.5,
+    ),
+    // Material 3 Expressive Shape 5: Organic Leaf (Asymmetric Corners)
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(56),
+        bottomRight: Radius.circular(56),
+        topRight: Radius.circular(18),
+        bottomLeft: Radius.circular(18),
+      ),
+    ),
+    // Material 3 Expressive Shape 6: Arch Shape
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(56),
+        topRight: Radius.circular(56),
+        bottomLeft: Radius.circular(20),
+        bottomRight: Radius.circular(20),
+      ),
+    ),
+    // Material 3 Expressive Shape 7: Stadium / Capsule
+    StadiumBorder(),
+    // Material 3 Expressive Shape 8: 3-Point Soft Clover
     StarBorder(
       points: 3,
-      innerRadiusRatio: 0.5,
-      pointRounding: 0.67,
+      innerRadiusRatio: 0.55,
+      pointRounding: 0.7,
       valleyRounding: 0.3,
+    ),
+    // Material 3 Expressive Shape 9: 5-Point Soft Star
+    StarBorder(
+      points: 5,
+      innerRadiusRatio: 0.6,
+      pointRounding: 0.5,
+      valleyRounding: 0.2,
+    ),
+    // Material 3 Expressive Shape 10: Soft Rhombus
+    StarBorder(
+      points: 4,
+      innerRadiusRatio: 0.48,
+      pointRounding: 0.75,
+      rotation: 0,
+    ),
+    // Material 3 Expressive Shape 11: Smooth Squircle
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(36)),
+    ),
+    // Material 3 Expressive Shape 12: Slanted Coupon / Ticket
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(18),
+        bottomRight: Radius.circular(18),
+        topRight: Radius.circular(56),
+        bottomLeft: Radius.circular(56),
+      ),
     ),
   ];
 
   OutlinedBorder _morphTarget = _pill;
+
+  void _pickNextShape() {
+    if (_shapes.isEmpty) return;
+    int nextIndex;
+    do {
+      nextIndex = Random().nextInt(_shapes.length);
+    } while (nextIndex == _lastShapeIndex && _shapes.length > 1);
+
+    _lastShapeIndex = nextIndex;
+    _morphTarget = _shapes[nextIndex];
+  }
 
   @override
   void initState() {
@@ -1070,66 +1144,13 @@ class _LastReadCardState extends State<_LastReadCard>
     _displayingJuz = widget.showJuz;
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 955),
+      duration: const Duration(milliseconds: 1100),
     );
-
-    _widthFactor = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 21,
-      ),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 0.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 21,
-      ),
-    ]).animate(_ctrl);
-
-    _contentOpacity = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 1.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 21,
-      ),
-      TweenSequenceItem(tween: ConstantTween(0.0), weight: 21),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 0.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 21,
-      ),
-    ]).animate(_ctrl);
-
-    _blurSigma = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 0.0,
-          end: 21.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 21,
-      ),
-      TweenSequenceItem(
-        tween: Tween(
-          begin: 21.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 21,
-      ),
-    ]).animate(_ctrl);
-
     _ctrl.addListener(_tick);
   }
 
   void _tick() {
-    if (!_midpointFired && _ctrl.value >= 0.36) {
+    if (!_midpointFired && _ctrl.value >= 0.5) {
       _midpointFired = true;
       setState(() => _displayingJuz = widget.showJuz);
       HapticFeedback.mediumImpact();
@@ -1140,26 +1161,10 @@ class _LastReadCardState extends State<_LastReadCard>
   void didUpdateWidget(_LastReadCard old) {
     super.didUpdateWidget(old);
     if (old.showJuz != widget.showJuz) {
-      _morphTarget = _shapes[Random().nextInt(_shapes.length)];
+      _pickNextShape();
       _midpointFired = false;
       HapticFeedback.heavyImpact();
       _ctrl.forward(from: 0.0);
-    }
-  }
-
-  ShapeBorder _shape() {
-    final t = _ctrl.value;
-    if (t == 0.0) return _pill;
-    if (t < 0.32) {
-      return ShapeBorder.lerp(_pill, _morphTarget, (t / 0.32).clamp(0.0, 1.0))!;
-    } else if (t < 0.44) {
-      return _morphTarget;
-    } else {
-      return ShapeBorder.lerp(
-        _morphTarget,
-        _pill,
-        ((t - 0.44) / 0.56).clamp(0.0, 1.0),
-      )!;
     }
   }
 
@@ -1197,13 +1202,36 @@ class _LastReadCardState extends State<_LastReadCard>
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, _) {
-        final shape = _shape();
-        final w = (h + (fullW - h) * _widthFactor.value).clamp(h, fullW);
-        final opacity = _contentOpacity.value.clamp(0.0, 1.0);
-        final blur = _blurSigma.value;
-        final blurProg = (blur / 20.0).clamp(0.0, 1.0);
+        final t = _ctrl.value;
+        // Continuous C2 smooth sine curve across the morph animation
+        final rawSin = sin(t * pi);
+        final smoothProgress = Curves.easeInOutCubic.transform(rawSin);
 
-        // Contents only (logo + text) — blur these, not the card background
+        // Smooth shape lerp
+        final shape = ShapeBorder.lerp(_pill, _morphTarget, smoothProgress)!;
+
+        // Smooth width contraction
+        final w = (fullW - (fullW - h) * smoothProgress).clamp(h, fullW);
+
+        // Recessed scale & opacity effects (card depresses into background)
+        final recessedScale = 1.0 - (0.08 * smoothProgress);
+        final cardOpacity = 1.0 - (0.15 * smoothProgress);
+
+        // Content fade out before midpoint, fade in after midpoint
+        double contentOpacity;
+        if (t < 0.45) {
+          contentOpacity = (1.0 - (t / 0.45)).clamp(0.0, 1.0);
+        } else if (t > 0.55) {
+          contentOpacity = ((t - 0.55) / 0.45).clamp(0.0, 1.0);
+        } else {
+          contentOpacity = 0.0;
+        }
+        contentOpacity = Curves.easeInOut.transform(contentOpacity);
+
+        // Content blur
+        final blur = 18.0 * smoothProgress;
+        final blurProg = (blur / 18.0).clamp(0.0, 1.0);
+
         Widget innerContents = Stack(
           children: [
             Positioned(
@@ -1272,7 +1300,7 @@ class _LastReadCardState extends State<_LastReadCard>
               shaderCallback: (bounds) => LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
-                colors: [
+                colors: const [
                   Colors.transparent,
                   Colors.white,
                   Colors.white,
@@ -1285,7 +1313,7 @@ class _LastReadCardState extends State<_LastReadCard>
                 shaderCallback: (bounds) => LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
+                  colors: const [
                     Colors.transparent,
                     Colors.white,
                     Colors.white,
@@ -1300,51 +1328,67 @@ class _LastReadCardState extends State<_LastReadCard>
           );
         }
 
-        Widget card = SizedBox(
-          width: w,
-          height: h,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: ShapeDecoration(
-                    shape: shape,
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xff34da15), const Color(0xFF000000)]
-                          : [
-                              const Color(0xff34da15),
-                              const Color.fromARGB(255, 40, 190, 14),
-                              const Color(0xFF0B4300),
-                            ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+        Widget card = Transform.scale(
+          scale: recessedScale,
+          child: Opacity(
+            opacity: cardOpacity,
+            child: SizedBox(
+              width: w,
+              height: h,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      decoration: ShapeDecoration(
+                        shape: shape,
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xff34da15), const Color(0xFF000000)]
+                              : [
+                                  const Color(0xff34da15),
+                                  const Color.fromARGB(255, 40, 190, 14),
+                                  const Color(0xFF0B4300),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shadows: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.4 * (1 - smoothProgress * 0.5))
+                                : const Color(0xFF0B4300).withValues(alpha: 0.25 * (1 - smoothProgress * 0.5)),
+                            blurRadius: 18 - 10 * smoothProgress,
+                            offset: Offset(0, 8 - 5 * smoothProgress),
+                          ),
+                        ],
+                      ),
+                      child: ClipPath(
+                        clipper: ShapeBorderClipper(shape: shape),
+                        child: Opacity(
+                          opacity: contentOpacity,
+                          child: innerContents,
+                        ),
+                      ),
                     ),
                   ),
-                  child: ClipPath(
-                    clipper: ShapeBorderClipper(shape: shape),
-                    child: Opacity(
-                      opacity: 1,
-                      child: innerContents,
+                  if (isDark)
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _ShapeBorderStrokePainter(
+                          shape: shape,
+                          color: Colors.white.withValues(alpha: 0.18 * (1 - smoothProgress * 0.5)),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                ],
               ),
-              if (isDark)
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _ShapeBorderStrokePainter(
-                      shape: shape,
-                      color: Colors.white.withValues(alpha: 0.18),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
         );
 
-        return Center(
-          child: GestureDetector(onTap: widget.onTap, child: card),
+        return GestureDetector(
+          onTap: widget.onTap,
+          child: Center(child: card),
         );
       },
     );
